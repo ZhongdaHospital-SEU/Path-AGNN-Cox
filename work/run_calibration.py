@@ -21,6 +21,11 @@ from baselines.cox_penalized import ridge_cox
 
 ROOT = r"D:/TT paper/Path-AGNN-Cox Pathway-Constrained Adaptive Graph Neural Network for Interpretable Survival Analysis"
 ds = sys.argv[1] if len(sys.argv) > 1 else "LUAD"
+CSV_OUT = os.path.join(ROOT, "results", "calibration_results.csv")
+done = set()
+if os.path.exists(CSV_OUT):
+    for _, r in pd.read_csv(CSV_OUT).iterrows():
+        done.add((r["dataset"], r["setting"], r["cohort"], r["model"]))
 epochs_full = int(os.environ.get("CAL_EPOCHS", "80"))
 cfg = load_benchmark_config()["models"]["path_agnn_cox"]
 out_rows = []
@@ -61,14 +66,20 @@ def calib_metrics(risk, time, event):
     return slope, lo, hi, (float(np.mean(devs)) if devs else np.nan)
 
 def emit(dataset, setting, cohort, model, n, n_ev, risk, time, event):
+    key = (dataset, setting, cohort, model)
+    if key in done:
+        print("skip existing", key, flush=True)
+        return
     try:
         slope, lo, hi, mae = calib_metrics(risk, time, event)
     except Exception as e:
         print("  calib failed", cohort, model, e, flush=True)
         slope = lo = hi = mae = np.nan
-    out_rows.append({"dataset": dataset, "setting": setting, "cohort": cohort, "model": model,
-                     "n": int(n), "events": int(n_ev),
-                     "slope": slope, "slope_ci_low": lo, "slope_ci_high": hi, "cal_mae": mae})
+    row = {"dataset": dataset, "setting": setting, "cohort": cohort, "model": model,
+           "n": int(n), "events": int(n_ev),
+           "slope": slope, "slope_ci_low": lo, "slope_ci_high": hi, "cal_mae": mae}
+    out_rows.append(row)
+    pd.DataFrame([row]).to_csv(CSV_OUT, index=False, mode="a", header=not os.path.exists(CSV_OUT))
     print(cohort, model, "slope %.2f (%.2f-%.2f) mae %.3f" % (slope, lo, hi, mae), flush=True)
 
 # ---------- internal CV ----------
@@ -89,8 +100,8 @@ for fold, (tr, va) in enumerate(skf.split(X, event)):
                     l2=cfg["l2"], lambda_sparse=cfg["lambda_sparse"],
                     lambda_consist=cfg["lambda_consist"], patience=cfg["patience"], seed=0)
     oof_a[va] = predict_risk(m, Xva_n)
-    r = ridge_cox(Xtr_a.to_numpy(), ttr, etr, penalizer=0.1)
-    oof_r[va] = r.predict_risk(Xva_a.to_numpy())
+    r = ridge_cox(Xtr_a[cols].to_numpy(), ttr, etr, penalizer=0.1)
+    oof_r[va] = r.predict_risk(Xva_a[cols].to_numpy())
     print(ds, "fold", fold, "done", flush=True)
 emit(ds, "internal", ds, "path_agnn_cox", len(df), int(event.sum()), oof_a, time, event)
 emit(ds, "internal", ds, "ridge_cox", len(df), int(event.sum()), oof_r, time, event)
@@ -103,7 +114,7 @@ torch.manual_seed(0); np.random.seed(0)
 m_full = train_model(m_full, Xn, time, event, epochs=epochs_full, lr=cfg["lr"],
                      batch_size=cfg["batch_size"], l2=cfg["l2"],
                      lambda_sparse=cfg["lambda_sparse"], lambda_consist=cfg["lambda_consist"], seed=0)
-r_full = ridge_cox(Xs.to_numpy(), time, event, penalizer=0.1)
+r_full = ridge_cox(Xs[cols].to_numpy(), time, event, penalizer=0.1)
 extdir = os.path.join(ROOT, "data", "processed", ds, "external")
 if os.path.isdir(extdir):
     for fname in sorted(os.listdir(extdir)):
@@ -123,7 +134,4 @@ if os.path.isdir(extdir):
         rr = r_full.predict_risk(Xe)
         emit(ds, "external", cohort, "ridge_cox", len(ext), int(ee.sum()), rr, te, ee)
 
-pd.DataFrame(out_rows).to_csv(os.path.join(ROOT, "results", "calibration_results.csv"),
-                              index=False, mode="a" if os.path.exists(os.path.join(ROOT, "results", "calibration_results.csv")) else "w",
-                              header=not os.path.exists(os.path.join(ROOT, "results", "calibration_results.csv")))
-print("DONE", ds)
+print("DONE", ds, "rows:", len(out_rows))

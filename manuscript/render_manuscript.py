@@ -490,6 +490,32 @@ def rewiring_tokens(rw_dir) -> dict:
 
 
 
+def calibration_tokens() -> dict:
+    """Read calibration results (results/calibration_results.csv) into tokens."""
+    st = {}
+    csv = ROOT / "results" / "calibration_results.csv"
+    if not csv.exists():
+        return st
+    df = pd.read_csv(csv)
+    for ds, pre in (("LUAD", "CAL_LUAD"), ("BRCA", "CAL_BRCA")):
+        for model, mpre in (("path_agnn_cox", "PATH"), ("ridge_cox", "RIDGE")):
+            sub = df[(df["dataset"] == ds) & (df["setting"] == "internal") & (df["model"] == model)]
+            if len(sub):
+                r = sub.iloc[0]
+                k = f"{pre}_{mpre}"
+                st[f"{k}_SLOPE"] = fmt2(float(r["slope"]))
+                st[f"{k}_CI"] = f"{fmt2(float(r['slope_ci_low']))}\u2013{fmt2(float(r['slope_ci_high']))}"
+                st[f"{k}_MAE"] = fmt2(float(r["cal_mae"]))
+    ext = df[(df["setting"] == "external") & (df["model"] == "path_agnn_cox")]
+    if len(ext):
+        sl = ext["slope"].dropna()
+        if len(sl):
+            st["CAL_EXT_MEAN"] = fmt2(float(sl.mean()))
+            st["CAL_EXT_MIN"] = fmt2(float(sl.min()))
+            st["CAL_EXT_MAX"] = fmt2(float(sl.max()))
+    return st
+
+
 # ---------- immune / drug tokens ----------
 def _feat_label(f):
     f = str(f)
@@ -706,6 +732,25 @@ def seed_tokens() -> dict:
 
 
 
+def table_cal() -> str:
+    """Calibration table from results/calibration_results.csv (Table S4 -> inline)."""
+    csv = ROOT / "results" / "calibration_results.csv"
+    if not csv.exists():
+        return "Calibration results pending."
+    df = pd.read_csv(csv)
+    model_names = {"path_agnn_cox": "Path-AGNN-Cox", "ridge_cox": "Ridge-Cox"}
+    setting_names = {"internal": "Internal CV", "external": "External transfer"}
+    lines = ["| Dataset | Setting | Cohort | Model | N | Events | Slope | 95% CI | MAE |",
+             "|---|---|---|---|---|---|---|---|---|"]
+    for _, r in df.iterrows():
+        lines.append("| %s | %s | %s | %s | %d | %d | %s | %s\u2013%s | %s |" % (
+            r["dataset"], setting_names.get(r["setting"], r["setting"]), r["cohort"],
+            model_names.get(r["model"], r["model"]), int(r["n"]), int(r["events"]),
+            fmt2(float(r["slope"])), fmt2(float(r["slope_ci_low"])), fmt2(float(r["slope_ci_high"])),
+            fmt2(float(r["cal_mae"]))))
+    return "\n".join(lines)
+
+
 # ---------- main ----------
 def main():
     ap = argparse.ArgumentParser()
@@ -725,6 +770,7 @@ def main():
     st.update(ext_rw_tokens())
     st.update(sensitivity_tokens())
     st.update(seed_tokens())
+    st.update(calibration_tokens())
     tables = {
         "DATASETS": table1(df, info),
         "BENCHMARK": table2(df),
@@ -732,6 +778,7 @@ def main():
         "EXTERNAL": table4(df, info),
         "REWIRING": table5(ROOT / "results" / "rewiring" / "LUAD"),
         "DRUGS": table6(ROOT / "results" / "immune"),
+        "CALIBRATION": table_cal(),
     }
 
     mf_path = ROOT / "results" / "figures" / "figure_manifest.json"
