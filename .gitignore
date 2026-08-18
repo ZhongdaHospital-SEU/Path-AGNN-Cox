@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Large generated data (not committed)
+data/
+work/pkg/
+work/models/
+work/logs/
+*.tar.gz
+/df.rds
+/results.rds
+/MANIFEST.txt
+
+# Root-level drafts and reference materials (internal only)
+/Path-AGNN-Cox_Introduction_v2.md
+/Path-AGNN-Cox_level3_interpathway_module.md
+/Path-AGNN-Cox_rewiring_analysis_plan.md
+/PathMoG*
+/题目.docx
+
+# Reproducibility scripts in work/ (top level only)
+work/*
+!work/*.py
+!work/*.md
+
+# Intermediate results (model weights / permutation outputs)
+results/rewiring/*/
+results/par_*/
+results/*.log
+
+# Benchmark summary tables (kept for reproducibility)
+results/*.csv
+!results/benchmark_results.csv
+!results/external_cindex_table.csv
+!results/external_per_cohort_table.csv
+!results/internal_cindex_table.csv
+!results/seed_analysis_BRCA.csv
+!results/seed_analysis_LUAD.csv
+!results/summary_long.csv
+
+# Figures: PNG excluded (SVG renders on GitHub)
+results/figures/*.png
+
+# Misc
+.vscode/
+.idea/
+*.log
+_tmp.gmt

@@ -1,0 +1,66 @@
+{
+ "Figure1": {
+  "token": "METHOD",
+  "file": "Figure1_method.svg",
+  "panels": [
+   "A",
+   "B",
+   "C",
+   "D"
+  ]
+ },
+ "Figure2": {
+  "token": "BENCHMARK",
+  "file": "Figure2_benchmark.svg",
+  "panels": [
+   "A",
+   "B",
+   "C"
+  ]
+ },
+ "Figure3": {
+  "token": "ABLATION",
+  "file": "Figure3_ablation.svg",
+  "panels": [
+   "A",
+   "B",
+   "C"
+  ]
+ },
+ "Figure4": {
+  "token": "EXTERNAL",
+  "file": "Figure4_external.svg",
+  "panels": [
+   "A"
+  ]
+ },
+ "Figure5": {
+  "token": "REWIRING",
+  "file": "Figure5_rewiring.svg",
+  "panels": [
+   "A",
+   "B",
+   "C",
+   "D",
+   "E"
+  ]
+ },
+ "Figure6": {
+  "token": "IMV",
+  "file": "Figure6_imvigor.svg",
+  "panels": [
+   "A",
+   "B",
+   "C"
+  ]
+ },
+ "Figure7": {
+  "token": "IMMUNEDRUG",
+  "file": "Figure7_immunedrug.svg",
+  "panels": [
+   "A",
+   "B",
+   "C"
+  ]
+ }
+}
