@@ -1,0 +1,1 @@
+"""Benchmark orchestration: >=8 datasets, internal CV + external validation."""

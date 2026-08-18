@@ -1,0 +1,49 @@
+# Benchmark dataset manifest: >= 8 cancer types, each with a TCGA training
+# cohort and 1-3 independent GEO external validation cohorts.
+# GSE IDs are canonical survival-annotated series used widely in the field;
+# please verify availability/sample size before submission.
+datasets:
+  - name: LUAD
+    tcga: TCGA-LUAD
+    external: [GSE31210, GSE50081, GSE68465]
+    disease: Lung adenocarcinoma
+  - name: LUSC
+    tcga: TCGA-LUSC
+    external: [GSE37745, GSE8894]
+    disease: Lung squamous cell carcinoma
+  - name: BRCA
+    tcga: TCGA-BRCA
+    external: [GSE20685, GSE21653, GSE7390]
+    disease: Breast invasive carcinoma
+  - name: COAD
+    tcga: TCGA-COAD
+    external: [GSE14333, GSE17536, GSE39582]
+    disease: Colon adenocarcinoma
+  - name: STAD
+    tcga: TCGA-STAD
+    external: [GSE15459, GSE84437]
+    disease: Stomach adenocarcinoma
+  - name: LIHC
+    tcga: TCGA-LIHC
+    external: [GSE14520, GSE116174]
+    disease: Liver hepatocellular carcinoma
+  - name: KIRC
+    tcga: TCGA-KIRC
+    external: [GSE29609]
+    disease: Kidney renal clear cell carcinoma
+  - name: HNSC
+    tcga: TCGA-HNSC
+    external: [GSE65858, GSE41613]
+    disease: Head and neck squamous carcinoma
+  - name: BLCA
+    tcga: TCGA-BLCA
+    external: [GSE32894, GSE13507]
+    disease: Bladder urothelial carcinoma
+  - name: OV
+    tcga: TCGA-OV
+    external: [GSE26712, GSE17260, GSE32062]
+    disease: Ovarian serous cystadenocarcinoma
+  - name: GBM
+    tcga: TCGA-GBM
+    external: [GSE7696, GSE108474]
+    disease: Glioblastoma multiforme
