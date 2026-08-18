@@ -44,8 +44,8 @@ para(doc, "survival analysis; graph neural network; pathway rewiring; KEGG; inte
           "patient-specific graphs; reproducibility", space_after=12)
 para(doc, "Manuscript statistics", bold=True, space_after=4)
 for line in ["- Abstract: ~300 words", "- Main text: ~5,000 words (Introduction to Conclusion)",
-             "- Figures: 7 (Figures 1-7)", "- Tables: 6 (Tables 1-6)",
-             "- Supplementary: 1 document (Supplementary Methods, Tables S1-S3)"]:
+             "- Figures: 7 (Figures 1-7)", "- Tables: 7 (Tables 1-7)",
+             "- Supplementary: none (all methods and tables integrated in the main text)"]:
     para(doc, line, space_after=2)
 para(doc, "Conflict of interest statement", bold=True, space_after=4)
 para(doc, "The authors declare no competing financial interests.", space_after=12)

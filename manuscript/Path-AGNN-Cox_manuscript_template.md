@@ -113,7 +113,7 @@ The total objective is L = L_Cox + λ₂‖W‖₂² + λ_sparse·L_sparse + λ_
 
 ### 2.7. Evaluation protocol
 
-We used stratified 5-fold cross-validation within each TCGA cohort (fold-stratified on the event indicator; random seed 42). The concordance index (C-index) served as the primary discrimination metric; the time-dependent AUC (mean over the 0.25/0.50/0.75 quantile times) was used as a secondary metric. For external validation, each model was retrained on the full TCGA cohort and evaluated on the GEO cohorts without any fine-tuning. Paired Wilcoxon signed-rank tests (per-dataset mean C-index, internal CV) were used to compare Path-AGNN-Cox against each baseline. Between-stratum rewiring was tested per pathway with a two-sample z-statistic on the per-edge mean weights using a pooled standard error, and the false discovery rate was controlled with the Benjamini–Hochberg procedure over the K pathways; the label-permutation null was generated with 1,000 permutations of the event labels. Pathway-level enrichment of the top-20 rewired pathways against a curated LUAD driver-pathway list was tested with the hypergeometric distribution over the 57-pathway cancer-core catalogue. Model hyperparameters are listed in the footnote of {{TREF:BENCHMARK}} (see config/benchmark.yaml). All deep models were trained on CPU with Adam; the full benchmark consumed approximately {{BENCHMARK_HOURS}} CPU-hours.
+We used stratified 5-fold cross-validation within each TCGA cohort (fold-stratified on the event indicator; random seed 42). The concordance index (C-index) served as the primary discrimination metric; the time-dependent AUC (mean over the 0.25/0.50/0.75 quantile times) was used as a secondary metric. For external validation, each model was retrained on the full TCGA cohort and evaluated on the GEO cohorts without any fine-tuning. Paired Wilcoxon signed-rank tests (per-dataset mean C-index, internal CV) were used to compare Path-AGNN-Cox against each baseline. Between-stratum rewiring was tested per pathway with a two-sample z-statistic on the per-edge mean weights using a pooled standard error, and the false discovery rate was controlled with the Benjamini–Hochberg procedure over the K pathways; the label-permutation null was generated with 1,000 permutations of the event labels. Pathway-level enrichment of the top-20 rewired pathways against a curated LUAD driver-pathway list was tested with the hypergeometric distribution over the 57-pathway cancer-core catalogue. For each trained model, per-patient edge weights were extracted from the last adaptive layer and patients were split at the median predicted risk. Static-model and standard-GAT controls followed the same protocol, and the permutation P was computed as one plus the number of null permutations with at least as many significant pathways, divided by 1,001. All analyses are implemented in benchmark/rewiring_analysis.py and the work/ scripts of the repository. Model hyperparameters are listed in the footnote of {{TREF:BENCHMARK}} (see config/benchmark.yaml). All deep models were trained on CPU with Adam; the full benchmark consumed approximately {{BENCHMARK_HOURS}} CPU-hours.
 
 ### 2.8. Baselines
 
@@ -127,7 +127,7 @@ with Adam (learning rate 1e-3, weight decay 1e-4) for up to 100 epochs with a
 batch size of 128 and early stopping on the validation C-index (patience 15);
 the network used two hidden layers of width 32 with dropout 0.1, and the
 regularization weights were lambda_sparse = 1e-3 and lambda_consist = 0.1
-(config/benchmark.yaml). All hyperparameters were held fixed across cancer types and baselines; no cohort-specific tuning was performed. All deep models were trained from a single random
+(config/benchmark.yaml). All hyperparameters were held fixed across cancer types and baselines; no cohort-specific tuning was performed. All deep models were trained from a single random Penalized Cox baselines were fit with penalizers of 0.05 for LASSO-Cox with 10-fold internal CV, 0.1 for Ridge-Cox, and l1_ratio 0.5 with penalizer 0.1 for Elastic-Net-Cox; the Random Survival Forest used 500 trees with min_samples_leaf 15; DeepSurv used hidden layers of widths 32 and 16, and Cox-nnet a single hidden layer of width 64.
 seed (42) for the benchmark, and seed effects are discussed in Section 4.
 
 The pathway constraint bounds the computational cost of attention. For a batch
@@ -193,9 +193,14 @@ We compared the full model with three ablations: −Pathway (Plain GNN, identity
 
 Per-cohort results are summarized in {{TREF:EXTERNAL}} and {{FREF:EXTERNAL}}. Path-AGNN-Cox maintained C-index above 0.50 in {{EXT_ABOVE_50}}/{{N_EXTERNAL}} external cohorts, compared with {{EXT_BASE_ABOVE_50}} for the best baseline. The model transferred across platform shifts (RNA-seq → Affymetrix microarrays) and independent sample processing pipelines, with a mean external C-index comparable to the deep baselines. {{EXT_STRONGEST_COHORT_DESC}}. These results contrast favorably with previous pathway-GNN studies: PathMoG reported external validation in a single breast-cancer cohort (METABRIC) [PathMoG], whereas Path-AGNN-Cox was validated in {{N_EXTERNAL}} independent cohorts spanning {{N_DATASETS}} tumor types.
 
+Calibration of the risk score was assessed with the slope of a univariate Cox regression of the standardized risk score and with the mean absolute deviation between model-predicted and Kaplan\u2013Meier survival across risk tertiles at the 25th, 50th and 75th percentiles of follow-up time as detailed in {{TREF:CALIBRATION}}. The internal out-of-fold slope was {{CAL_LUAD_PATH_SLOPE}} with 95% CI {{CAL_LUAD_PATH_CI}} and a calibration MAE of {{CAL_LUAD_PATH_MAE}} in LUAD, and {{CAL_BRCA_PATH_SLOPE}} with 95% CI {{CAL_BRCA_PATH_CI}} and MAE {{CAL_BRCA_PATH_MAE}} in BRCA; the penalized Cox counterpart produced slopes of {{CAL_LUAD_RIDGE_SLOPE}} and {{CAL_BRCA_RIDGE_SLOPE}}, respectively. External slopes for Path-AGNN-Cox ranged from {{CAL_EXT_MIN}} to {{CAL_EXT_MAX}} with a mean of {{CAL_EXT_MEAN}}.
+
 {{FIG:EXTERNAL}}
 - **{{FDEF:EXTERNAL}}. External validation across {{N_EXTERNAL}} GEO cohorts.** Per-cohort C-index of Path-AGNN-Cox vs. the best baseline; cohorts grouped by cancer type; dashed line at 0.50.
 
+
+### {{TDEF:CALIBRATION}}. Calibration of the risk score in internal and external cohorts.
+{{TABLE:CALIBRATION}}
 
 ### 3.4. Path-AGNN-Cox learns biologically meaningful patient-specific pathway rewiring
 
