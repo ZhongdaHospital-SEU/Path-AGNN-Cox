@@ -1,0 +1,6 @@
+,0
+hits,4
+top_k,20
+known_in_agg,14
+p,0.8750699666518452
+hit_pathways,"['Cell cycle', 'ErbB signaling pathway', 'Focal adhesion', 'HIF-1 signaling pathway']"
