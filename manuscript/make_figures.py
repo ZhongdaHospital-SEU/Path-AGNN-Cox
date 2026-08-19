@@ -221,42 +221,41 @@ def fig_external(df):
     return "Figure4_external.svg", ["A"]
 
 def fig_rewiring(df=None):
-    rw = ROOT / "results" / "rewiring" / "LUAD"
+    """Figure 5: between-stratum effect sizes with permutation-calibrated
+    significance (A/B), cohort-level label-permutation null (C), clinical
+    correlation (D), matched random-set controls (E)."""
     panels = []
     fig = plt.figure(figsize=(11.5, 6.5))
-    # A: top pathways by |z|
-    ax = fig.add_axes([0.07, 0.56, 0.40, 0.36])
-    pw = rw / "pathway_test.csv"
-    if pw.exists():
-        t = pd.read_csv(pw).head(10).iloc[::-1]
-        colors = ["#C0392B" if d > 0 else "#2980B9" for d in t["d"]]
-        ax.barh(np.arange(len(t)), t["z"].abs(), color=colors, alpha=0.85)
-        ax.set_yticks(np.arange(len(t))); ax.set_yticklabels(t["pathway"], fontsize=6.8)
-        ax.axvline(0, color="black", lw=0.6)
-        ax.set_xlabel("|standardized z|", fontsize=8)
-        ax.set_title("A  Top rewired pathways (LUAD)", fontsize=9)
-        ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
-        panels.append("A")
-    else:
-        ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
-    # B: mean edge weight hi vs lo for top-5
-    ax = fig.add_axes([0.52, 0.56, 0.44, 0.36])
-    if pw.exists():
-        t5 = pd.read_csv(pw).head(5).iloc[::-1]
-        x = np.arange(len(t5)); w = 0.36
-        ax.bar(x - w / 2, t5["mean_hi"], w, label="High risk", color="#C0392B", alpha=0.8)
-        ax.bar(x + w / 2, t5["mean_lo"], w, label="Low risk", color="#2980B9", alpha=0.8)
-        ax.set_xticks(x); ax.set_xticklabels(t5["pathway"], rotation=30, ha="right", fontsize=6.8)
-        ax.set_ylabel("Mean edge weight", fontsize=8)
-        ax.set_title("B  Pathway attention strength by risk stratum", fontsize=9)
-        ax.legend(fontsize=7, frameon=False)
-        ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
-        panels.append("B")
-    else:
-        ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
+    # A/B: Cohen's d forest plots (all pathways)
+    for k, (ds, pos, title) in enumerate([
+            ("LUAD", [0.07, 0.56, 0.44, 0.36], "A  Between-stratum effect sizes (LUAD)"),
+            ("BRCA", [0.55, 0.56, 0.42, 0.36], "B  Between-stratum effect sizes (BRCA)")]):
+        ef = ROOT / "results" / "rewiring" / ds / "pathway_effects.csv"
+        ax = fig.add_axes(pos)
+        if ef.exists():
+            d = pd.read_csv(ef).sort_values("cohen_d")
+            sig = (d["perm_q"] < 0.05).to_numpy()
+            y = np.arange(len(d))
+            ax.errorbar(d["cohen_d"], y,
+                        xerr=[d["cohen_d"] - d["d_ci_lo"], d["d_ci_hi"] - d["cohen_d"]],
+                        fmt="none", ecolor="#95A5A6", elinewidth=0.6, zorder=1)
+            cols = np.where(sig, "#C0392B", "#7F8C8D")
+            ax.scatter(d["cohen_d"], y, s=8, c=cols, zorder=2)
+            ax.axvline(0, color="black", lw=0.6)
+            ax.set_yticks(y)
+            ax.set_yticklabels([p if len(p) <= 24 else p[:23] + "..." for p in d["pathway"]],
+                               fontsize=5.2)
+            ax.set_xlabel("Cohen's d (high vs. low risk)", fontsize=8)
+            ax.set_title(title, fontsize=9)
+            ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
+            ax.text(0.98, 0.02, "%d significant after permutation FDR" % int(sig.sum()),
+                    transform=ax.transAxes, ha="right", fontsize=6.5, color="#C0392B")
+            panels.append("A" if k == 0 else "B")
+        else:
+            ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     # C: label-permutation null vs observed
     ax = fig.add_axes([0.07, 0.08, 0.28, 0.36])
-    perm_files = [("LUAD", rw / "permutation_test.csv"),
+    perm_files = [("LUAD", ROOT / "results" / "rewiring" / "LUAD" / "permutation_test.csv"),
                   ("BRCA", ROOT / "results" / "rewiring" / "BRCA" / "permutation_test.csv")]
     if all(p.exists() for _, p in perm_files):
         obs, null_mean, null_max, perm_p = [], [], [], []
@@ -275,7 +274,7 @@ def fig_rewiring(df=None):
         for i, (x, o, nm, pv) in enumerate(zip(grp, obs, null_mean, perm_p)):
             ax.annotate(str(o), (x - wd / 2, o), textcoords="offset points", xytext=(0, 3),
                         ha="center", fontsize=7)
-            ax.annotate(f"{nm:.2f}", (x + wd / 2, nm), textcoords="offset points", xytext=(0, 3),
+            ax.annotate("%.2f" % nm, (x + wd / 2, nm), textcoords="offset points", xytext=(0, 3),
                         ha="center", fontsize=7)
             pv_txt = "P<0.001" if pv < 0.001 else "P=%.3f" % pv
             ax.text(x, max(o, null_max[i]) * 1.06 + 1.5, pv_txt, ha="center",
@@ -291,7 +290,7 @@ def fig_rewiring(df=None):
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     # D: clinical correlation
     ax = fig.add_axes([0.40, 0.08, 0.28, 0.36])
-    cc = rw / "clinical_corr.csv"
+    cc = ROOT / "results" / "rewiring" / "LUAD" / "clinical_corr.csv"
     if cc.exists() and cc.stat().st_size > 1:
         c = pd.read_csv(cc)
         if len(c):
@@ -304,20 +303,39 @@ def fig_rewiring(df=None):
             for i, (r, p) in enumerate(zip(c["rho"], c["p"])):
                 ax.text(r + 0.01, i, "P<0.001" if p < 0.001 else "P=%.3f" % p,
                         fontsize=6.5, va="center")
-            ax.set_xlabel("Spearman \u03c1 (rewiring magnitude)", fontsize=8)
+            ax.set_xlabel("Spearman rho (rewiring magnitude)", fontsize=8)
             ax.set_title("D  Clinical correlation", fontsize=9)
             ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
             panels.append("D")
     else:
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
-    # E: BRCA top pathways (replication)
+    # E: matched random-set controls (percentiles of real pathways)
     ax = fig.add_axes([0.73, 0.08, 0.24, 0.36])
-    br = ROOT / "results" / "rewiring" / "BRCA" / "pathway_test.csv"
-    if br.exists():
-        t = pd.read_csv(br).head(8).iloc[::-1]
-        ax.barh(np.arange(len(t)), t["z"].abs(), color="#8E44AD", alpha=0.8)
-        ax.set_yticks(np.arange(len(t))); ax.set_yticklabels(t["pathway"], fontsize=6)
-        ax.set_title("E  Top rewired pathways (BRCA)", fontsize=9)
+    data, positions, labels = [], [], []
+    for i, ds in enumerate(["LUAD", "BRCA"]):
+        ef = ROOT / "results" / "rewiring" / ds / "pathway_effects.csv"
+        if not ef.exists():
+            continue
+        d = pd.read_csv(ef)
+        for j, col in enumerate(["null_pct", "block_null_pct"]):
+            v = d[col].dropna().to_numpy()
+            data.append(v)
+            positions.append(i * 1.5 + j * 0.32)
+            labels.append("%s %s" % (ds, "edge" if j == 0 else "density"))
+    if data:
+        bp = ax.boxplot(data, positions=positions, widths=0.26, patch_artist=True,
+                        showfliers=False, manage_ticks=False)
+        for patch in bp["boxes"]:
+            patch.set_facecolor("#AED6F1"); patch.set_alpha(0.8)
+        ax.axhline(0.5, color="#2C3E50", ls="--", lw=0.9)
+        ax.axhline(0.95, color="#E67E22", ls=":", lw=0.9)
+        ax.set_xticks(positions)
+        ax.set_xticklabels(labels, fontsize=6, rotation=25, ha="right")
+        ax.set_ylabel("Percentile of real pathway effect", fontsize=8)
+        ax.set_ylim(0, 1.05)
+        ax.set_title("E  Matched random-set controls", fontsize=9)
+        ax.text(0.02, 0.97, "chance 0.50", transform=ax.transAxes, fontsize=6, color="#2C3E50")
+        ax.text(0.02, 0.905, "95th pct", transform=ax.transAxes, fontsize=6, color="#E67E22")
         ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
         panels.append("E")
     else:
@@ -326,7 +344,6 @@ def fig_rewiring(df=None):
     fig.savefig(FIGDIR / "Figure5_rewiring.png", dpi=300)
     plt.close(fig)
     return "Figure5_rewiring.svg", panels
-
 
 def fig_immune_drug(df=None):
     """Figure: immune infiltration (A) + BRCA predicted drug sensitivity (B, C)."""
