@@ -30,6 +30,14 @@ work/*
 
 # Intermediate results (model weights / permutation outputs)
 results/rewiring/*/
+!results/rewiring/*/
+results/rewiring/*/alpha.npy
+results/rewiring/*/stdgat_alpha.npy
+results/rewiring/*/edges_meta.csv
+results/rewiring/*/edge_diff.csv
+results/rewiring/*/risk_scores.csv
+results/rewiring/*/rewiring_magnitude.csv
+results/rewiring/*/pathway_rewiring.csv
 results/par_*/
 results/*.log
 
