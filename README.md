@@ -2,6 +2,11 @@
 
 **A reproducible statistical framework for testing patient-specific pathway rewiring in cancer survival analysis**
 
+[![PyPI version](https://img.shields.io/pypi/v/path-agnn-cox.svg)](https://pypi.org/project/path-agnn-cox/)
+[![Python versions](https://img.shields.io/pypi/pyversions/path-agnn-cox.svg)](https://pypi.org/project/path-agnn-cox/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/wangzhipeng-1/Path-AGNN-Cox)](https://github.com/wangzhipeng-1/Path-AGNN-Cox/releases)
+
 Repository for the manuscript *"Path-AGNN-Cox: a reproducible statistical
 framework for testing patient-specific pathway rewiring in cancer survival
 analysis"* (manuscript in `manuscript/`). The benchmark covers 11 TCGA cancer
@@ -14,8 +19,8 @@ comparing Path-AGNN-Cox against classical, deep, and graph survival baselines.
   KEGG pathway-constrained subgraphs, with a Cox risk head.
 - **Statistical testing machinery for rewiring**: edge- and pathway-level
   between-stratum tests with BH-FDR, label-permutation nulls, a static-model
-  negative control (zero rewiring by construction), and a standard-GAT
-  architectural control.
+  negative control (zero rewiring by construction), a standard-GAT
+  architectural control, and matched random gene-set controls.
 - **Clinical anchoring**: rewiring magnitude vs. proliferation (Ki-67) and TMB;
   multivariable Cox models; independent immunotherapy cohort (IMvigor210) and
   external GEO replication analyses.
@@ -33,6 +38,46 @@ patient), and a Cox partial likelihood head optimizes the risk score directly.
 Dual regularization (intra-pathway sparsity + consistency between stochastic
 views) suppresses overfitting in high-heterogeneity cohorts.
 
+## Quick links
+
+- Manuscript: [`manuscript/Path-AGNN-Cox_manuscript.md`](manuscript/Path-AGNN-Cox_manuscript.md)
+- Results: [`results/`](results/) (C-index tables, rewiring statistics, figures)
+- Quickstart notebook: [`examples/Path-AGNN-Cox_quickstart.ipynb`](examples/Path-AGNN-Cox_quickstart.ipynb)
+  [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/wangzhipeng-1/Path-AGNN-Cox/blob/main/examples/Path-AGNN-Cox_quickstart.ipynb)
+- Zenodo archive: DOI pending (registered on first tagged release)
+
+## Install
+
+```bash
+pip install path-agnn-cox          # from PyPI
+pip install -r requirements.txt    # or from source: pip install -e .
+```
+
+## Quickstart (no real data needed)
+
+```bash
+python examples/quickstart.py
+python tests/smoke_test.py
+```
+
+Or run the [quickstart notebook](examples/Path-AGNN-Cox_quickstart.ipynb) in
+Google Colab for a synthetic end-to-end demo.
+
+Python API in three lines:
+
+```python
+import torch
+from path_agnn_cox.pathway import load_gmt, build_pathway_adjacency
+from path_agnn_cox.models import PathAGNNCox
+from path_agnn_cox.train import train_model, predict_risk
+
+pathway_dict = load_gmt("data/pathways/kegg_cancer_core.gmt")
+adj, membership, gene_order = build_pathway_adjacency(genes, pathway_dict)
+model = PathAGNNCox(n_genes=len(gene_order), adj=torch.tensor(adj), pathway_ids=ids)
+train_model(model, X_train, t_train, e_train, X_val, t_val, e_val)
+risk = predict_risk(model, X_test)
+```
+
 ## Repository layout
 
 ```
@@ -47,20 +92,6 @@ tests/smoke_test.py     all-baseline smoke test
 work/                  analysis scripts (permutation test, clinical build, multivariable Cox,
                          standard-GAT control, external rewiring replication, IMvigor210)
 manuscript/            template + render_manuscript.py + make_figures.py + check_formatting.py
-```
-
-## Install
-
-```bash
-pip install -r requirements.txt
-# or: pip install -e .
-```
-
-## Quickstart (no real data needed)
-
-```bash
-python examples/quickstart.py
-python tests/smoke_test.py
 ```
 
 ## Full benchmark (requires processed data)
@@ -81,13 +112,14 @@ python -m benchmark.summarize                           # tables + figures in re
 - External: retrain on full TCGA, evaluate on each GEO cohort without fine-tuning
 - Rewiring analyses (LUAD/BRCA): pathway-level between-stratum tests with
   BH-FDR, 200 label-permutation nulls, static-model negative control,
-  randomized-partition control, clinical correlations, multivariable Cox
+  randomized-partition control, matched random gene-set controls, clinical
+  correlations, multivariable Cox
 
 ## Reproducing the manuscript
 
 ```bash
-python manuscript/render_manuscript.py      # manuscript/Path-AGNN-Cox_manuscript.md (tables 1-5)
-python manuscript/make_figures.py           # results/figures/Figure1-5 (SVG + PNG) + figure_manifest.json
+python manuscript/render_manuscript.py      # manuscript/Path-AGNN-Cox_manuscript.md (tables 1-7)
+python manuscript/make_figures.py           # results/figures/Figure1-7 (SVG + PNG) + figure_manifest.json
 python manuscript/check_formatting.py       # numbering / decimal / P-value audit (must pass)
 # rewiring analyses (per dataset):
 python benchmark/rewiring_analysis.py --dataset LUAD --train-csv data/processed/LUAD/train.csv \
@@ -126,6 +158,21 @@ python work/multivariable_cox.py LUAD
   significant after adjustment for stage and age (multivariable Cox: LUAD
   HR 1.22 per SD, P=0.035; BRCA HR 1.27 per SD, P=0.010). Full results in `results/`.
 
+## License
+
+MIT — see [LICENSE](LICENSE).
+
 ## Citation
 
-To be updated after publication.
+Zenodo DOI and journal citation will be registered on publication. Until then,
+please cite this repository:
+
+```bibtex
+@software{wang_path_agnn_cox_2026,
+  author  = {Wang, Zhipeng},
+  title   = {{Path-AGNN-Cox}: a reproducible statistical framework for testing patient-specific pathway rewiring in cancer survival analysis},
+  year    = {2026},
+  publisher = {GitHub},
+  url     = {https://github.com/wangzhipeng-1/Path-AGNN-Cox}
+}
+```

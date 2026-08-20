@@ -1,0 +1,21 @@
+{
+  "title": "Path-AGNN-Cox: a reproducible statistical framework for testing patient-specific pathway rewiring in cancer survival analysis",
+  "description": "Pathway-constrained adaptive graph neural network with per-patient attention edge weights and a Cox survival head, together with statistical testing machinery for patient-specific pathway rewiring (label-permutation nulls, static-model and standard-GAT controls, matched random gene-set controls). Benchmarked on 11 TCGA cancer types with 25 independent GEO external validation cohorts.",
+  "creators": [
+    {
+      "name": "Wang, Zhipeng"
+    }
+  ],
+  "keywords": [
+    "survival analysis",
+    "graph neural network",
+    "pathway rewiring",
+    "cancer prognosis",
+    "TCGA",
+    "GEO",
+    "reproducibility"
+  ],
+  "license": "MIT",
+  "upload_type": "software",
+  "access_right": "open"
+}
