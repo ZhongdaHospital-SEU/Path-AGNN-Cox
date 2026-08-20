@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="path-agnn-cox",
-    version="0.1.1",
+    version="0.1.2",
     description="Pathway-constrained adaptive graph neural network for interpretable survival analysis",
     long_description=long_description,
     long_description_content_type="text/markdown",
