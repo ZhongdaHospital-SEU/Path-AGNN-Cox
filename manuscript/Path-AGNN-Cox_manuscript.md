@@ -69,6 +69,8 @@ We evaluated Path-AGNN-Cox on a harmonized pan-cancer cohort of 5336 patients fr
 
 For the GEO cohorts, probes were mapped to gene symbols using the platform annotation tables downloaded from NCBI GEO (e.g., GPL570, GPL96, GPL6480); duplicate gene symbols were collapsed by maximum mean expression, and per-gene missing values were imputed with the gene-wise mean within each cohort. Survival endpoints were harmonized to overall survival in days: GEO follow-up times reported in months or years were converted with 365.25/12 or 365.25 days per unit, respectively, and TCGA overall-survival time was derived from GDC clinical annotations, that is, days to death or days to last follow-up. Because each TCGA cohort was modeled separately and each GEO cohort was validated independently without pooling, no cross-cohort batch correction was required.
 
+Expression values were analyzed at each cohort's native scale: TCGA RNA-seq values were log2(TPM+1) as provided by UCSC Xena GDC STAR-TPM, and GEO series matrices were used as provided, typically log2-scale microarray intensities. Before model fitting, every gene was z-scored with the training-cohort mean and standard deviation; external cohorts were standardized with the training statistics, and zero-variance genes were left unchanged.
+
 Expression matrices were first mapped to the KEGG cancer-core pathway catalogue (57 pathways, 3097 genes in the union). After intersection with each cohort's measured genes, on average 2760 genes per cohort were retained; genes outside any pathway were excluded, so that every model in the benchmark operates on the same pathway-mapped gene universe (a matched comparison).
 
 ### 2.2. Overview of Path-AGNN-Cox
@@ -422,3 +424,6 @@ Path-AGNN-Cox couples a pathway-constrained GNN with patient-specific attention 
 10. Wang et al. (2026) PathMoG: A pathway-centric modular graph neural network for multi-omics survival prediction. *arXiv:2604.24371*.
 11. Veličković et al. (2018) Graph attention networks. *ICLR*.
 12. GSE accession references for the 25 external cohorts (full list in Table 1).
+13. Ha MJ, Baladandayuthapani V. DINGO: differential network analysis in genomics. *Bioinformatics*. 2015;31(21):3413-3420.
+14. de la Fuente A. From 'differential expression' to 'differential networking': identification of dysfunctional regulatory networks in diseases. *Trends Genet*. 2010;26(7):326-333.
+15. Gill R, Datta S, Datta S. A statistical framework for differential network analysis from microarray data. *BMC Bioinformatics*. 2010;11:95.
