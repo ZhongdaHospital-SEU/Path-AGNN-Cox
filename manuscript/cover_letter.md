@@ -14,7 +14,7 @@ We are pleased to submit our manuscript, **"Path-AGNN-Cox: a reproducible statis
 
 3. **Clinical and external anchoring.** Rewiring magnitude correlates with Ki-67 expression in two independent cohorts (TCGA-BRCA and the IMvigor210 anti-PD-L1 cohort) and with tumor mutational burden in TCGA-LUAD; multivariable Cox models confirm independent association of the risk score with overall survival. We also report the negative results transparently: in six external GEO cohorts, rewiring magnitude was not significantly associated with overall survival, and immunotherapy response differences in IMvigor210 were not significant.
 
-**Reproducibility.** All code is released as an open-source Python package with a pip-installable distribution, example notebooks, and reproducible pipelines for data download, benchmarking, rewiring testing, and figure generation (GitHub repository and PyPI package provided in the manuscript). We believe this satisfies the journal's emphasis on transparent, reproducible methods.
+**Reproducibility.** All code is released as an open-source Python package with a pip-installable distribution, example notebooks, and reproducible pipelines for data download, benchmarking, rewiring testing, and figure generation, available at https://github.com/wangzhipeng-1/Path-AGNN-Cox and on PyPI (https://pypi.org/project/path-agnn-cox/), with an archived snapshot at Zenodo (https://doi.org/10.5281/zenodo.22030045). We believe this satisfies the journal's emphasis on transparent, reproducible methods.
 
 All authors have read and approved the manuscript, and none of the authors has a competing financial interest. The manuscript is not under consideration elsewhere.
 
