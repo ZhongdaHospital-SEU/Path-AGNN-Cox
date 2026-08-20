@@ -6,6 +6,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/path-agnn-cox.svg)](https://pypi.org/project/path-agnn-cox/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub release](https://img.shields.io/github/v/release/wangzhipeng-1/Path-AGNN-Cox)](https://github.com/wangzhipeng-1/Path-AGNN-Cox/releases)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22030045.svg)](https://doi.org/10.5281/zenodo.22030045)
 
 Repository for the manuscript *"Path-AGNN-Cox: a reproducible statistical
 framework for testing patient-specific pathway rewiring in cancer survival
@@ -44,7 +45,7 @@ views) suppresses overfitting in high-heterogeneity cohorts.
 - Results: [`results/`](results/) (C-index tables, rewiring statistics, figures)
 - Quickstart notebook: [`examples/Path-AGNN-Cox_quickstart.ipynb`](examples/Path-AGNN-Cox_quickstart.ipynb)
   [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/wangzhipeng-1/Path-AGNN-Cox/blob/main/examples/Path-AGNN-Cox_quickstart.ipynb)
-- Zenodo archive: DOI pending (registered on first tagged release)
+- Zenodo archive (v0.1.1): [10.5281/zenodo.22030045](https://doi.org/10.5281/zenodo.22030045)
 
 ## Install
 
@@ -164,15 +165,15 @@ MIT — see [LICENSE](LICENSE).
 
 ## Citation
 
-Zenodo DOI and journal citation will be registered on publication. Until then,
-please cite this repository:
+Zenodo archive (v0.1.1): [10.5281/zenodo.22030045](https://doi.org/10.5281/zenodo.22030045)
 
 ```bibtex
 @software{wang_path_agnn_cox_2026,
   author  = {Wang, Zhipeng},
   title   = {{Path-AGNN-Cox}: a reproducible statistical framework for testing patient-specific pathway rewiring in cancer survival analysis},
   year    = {2026},
-  publisher = {GitHub},
+  publisher = {Zenodo},
+  doi     = {10.5281/zenodo.22030045},
   url     = {https://github.com/wangzhipeng-1/Path-AGNN-Cox}
 }
 ```
