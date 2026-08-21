@@ -273,13 +273,15 @@ def table5(rw_dir) -> str:
         ad = ROOT / "results" / "rewiring" / "addendum_table.csv"
         if ad.exists():
             t = pd.read_csv(ad).set_index("dataset")
-            def cell(ds, col, fmt=lambda v: fmt2(float(v)) if pd.notna(v) else "n.a."):
+            def cell(ds, col, fmt=lambda v: fmt2(float(v)) if pd.notna(v) else 'n.a.'):
                 if ds not in t.index:
                     return "n.a."
                 return fmt(t.loc[ds, col])
             lines.append(f"| Global attention shift, high vs low risk (P) | {cell('LUAD','global_p',fmt_p)} | {cell('BRCA','global_p',fmt_p)} | {cell('KIRC','global_p',fmt_p)} |")
             lines.append(f"| Pathway-specific rewiring after global-shift removal (q<0.05) | {cell('LUAD','n_sig_specific_q005',lambda v: str(int(v)))} | {cell('BRCA','n_sig_specific_q005',lambda v: str(int(v)))} | {cell('KIRC','n_sig_specific_q005',lambda v: str(int(v)))} |")
+            lines.append(f"| Significant pathways under stage-stratified anchor (q<0.05) | {cell('LUAD','n_sig_anchor_stage',lambda v: str(int(v)) if pd.notna(v) else 'n.a.')} | {cell('BRCA','n_sig_anchor_stage',lambda v: str(int(v)) if pd.notna(v) else 'n.a.')} | {cell('KIRC','n_sig_anchor_stage',lambda v: str(int(v)) if pd.notna(v) else 'n.a.')} |")
             lines.append(f"| Significant pathways under MKI67-stratified anchor (q<0.05) | {cell('LUAD','n_sig_anchor_mki67',lambda v: str(int(v)))} | {cell('BRCA','n_sig_anchor_mki67',lambda v: str(int(v)))} | {cell('KIRC','n_sig_anchor_mki67',lambda v: str(int(v)))} |")
+            lines.append(f"| Significant pathways under grade-stratified anchor (q<0.05) | {cell('LUAD','n_sig_anchor_grade',lambda v: str(int(v)) if pd.notna(v) else 'n.a.')} | {cell('BRCA','n_sig_anchor_grade',lambda v: str(int(v)) if pd.notna(v) else 'n.a.')} | {cell('KIRC','n_sig_anchor_grade',lambda v: str(int(v)) if pd.notna(v) else 'n.a.')} |")
         known_file = ROOT / "data" / "pathways" / "luad_known_pathways.txt"
         if known_file.exists():
             known = [ln.strip() for ln in known_file.read_text(encoding="utf-8").splitlines() if ln.strip()]
@@ -299,9 +301,9 @@ def table5(rw_dir) -> str:
         if len(sn_rows) >= 2 and ev.exists():
             evd = pd.read_csv(ev).set_index("dataset")
             def va(ds):
-                return f"{sn_rows[ds]:.2e}" if ds in sn_rows else "n.a."
+                return f"{sn_rows[ds]:.2e}" if ds in sn_rows else 'n.a.'
             def va2(ds):
-                return f"{float(evd.loc[ds, 'total_var']):.2e}" if ds in evd.index else "n.a."
+                return f"{float(evd.loc[ds, 'total_var']):.2e}" if ds in evd.index else 'n.a.'
             lines.append(f"| Static-model total edge variance | {va('LUAD')} | {va('BRCA')} | {va('KIRC')} |")
             lines.append(f"| Adaptive-model total edge variance | {va2('LUAD')} | {va2('BRCA')} | {va2('KIRC')} |")
         rc = rw_dir / "random_control.csv"
@@ -811,6 +813,8 @@ def addendum_tokens() -> dict:
                     st[pre + "_ANCHOR_TMB"] = str(int(r["n_sig_anchor_tmb"]))
                 if pd.notna(r["n_sig_anchor_stage"]):
                     st[pre + "_ANCHOR_STAGE"] = str(int(r["n_sig_anchor_stage"]))
+                if pd.notna(r["n_sig_anchor_grade"]):
+                    st[pre + "_ANCHOR_GRADE"] = str(int(r["n_sig_anchor_grade"]))
     pk = ROOT / "results" / "rewiring" / "addendum_summary.pkl"
     if pk.exists():
         import pickle
@@ -819,6 +823,37 @@ def addendum_tokens() -> dict:
         st["ADD_BK_CONCORD"] = fmt2(100 * float(d["concordance"]))
         st["ADD_BK_RHO"] = fmt2(float(d["spearman_d_adj_all"]))
         st["ADD_BK_P"] = fmt_p(float(d["spearman_p"]))
+    return st
+
+
+def kirc_clinical_tokens() -> dict:
+    """KIRC clinical anchor correlations (stage/grade/age vs rewiring magnitude)."""
+    p = ROOT / "results" / "rewiring" / "KIRC" / "clinical_corr.csv"
+    st = {}
+    if p.exists():
+        t = pd.read_csv(p).set_index("clinical")
+        for var, pre in (("stage", "STAGE"), ("grade", "GRADE"), ("age", "AGE")):
+            if var in t.index:
+                r = t.loc[var]
+                st["CLINICAL_KIRC_" + pre + "_RHO"] = fmt2(float(r["rho"]))
+                st["CLINICAL_KIRC_" + pre + "_P"] = fmt_p(float(r["p"]))
+                st["CLINICAL_KIRC_" + pre + "_N"] = str(int(r["n"]))
+    return st
+
+
+def dca_tokens() -> dict:
+    """DCA summary numbers from results/rewiring/dca_summary.csv."""
+    p = ROOT / "results" / "rewiring" / "dca_summary.csv"
+    st = {}
+    if p.exists():
+        t = pd.read_csv(p)
+        for _, r in t.iterrows():
+            pre = "DCA_%s_%s" % (r["dataset"], r["horizon"])
+            st[pre + "_MAXDIFF"] = fmt2(float(r["max_diff"]))
+            st[pre + "_NPOS"] = "%d/%d" % (int(r["n_pos"]), int(r["n_thr"]))
+            st[pre + "_MEANDIFF"] = fmt2(float(r["mean_diff"]))
+            st[pre + "_CLINMAX"] = fmt2(float(r["clinical_max"]))
+            st[pre + "_RISKMAX"] = fmt2(float(r["risk_max"]))
     return st
 
 
@@ -902,6 +937,8 @@ def main():
     st.update(ext_rw_tokens())
     st.update(sensitivity_tokens())
     st.update(addendum_tokens())
+    st.update(kirc_clinical_tokens())
+    st.update(dca_tokens())
     st.update(ext_pathway_meta_tokens())
     st.update(seed_tokens())
     st.update(calibration_tokens())

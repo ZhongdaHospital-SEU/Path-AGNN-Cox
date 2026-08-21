@@ -1,4 +1,4 @@
-dataset,global_d,global_p,n_sig_raw_perm,n_sig_specific_q005,n_sig_anchor_mki67,n_sig_anchor_tmb,n_sig_anchor_stage
-LUAD,3.2410026e-07,0.0187291327985715,2,14,11,9,0.0
-BRCA,7.4878335e-07,2.921154447067984e-15,43,42,33,30,2.0
-KIRC,-6.596558e-06,3.3757196364766973e-44,52,36,24,0,
+dataset,global_d,global_p,n_sig_raw_perm,n_sig_specific_q005,n_sig_anchor_mki67,n_sig_anchor_tmb,n_sig_anchor_stage,n_sig_anchor_grade
+LUAD,3.2410026e-07,0.0187291327985715,2,14,11,9,0.0,
+BRCA,7.4878335e-07,2.921154447067984e-15,43,42,33,30,2.0,
+KIRC,-6.596558e-06,3.3757196364766973e-44,52,36,24,0,22.0,25.0

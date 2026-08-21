@@ -540,10 +540,47 @@ def _feat_label_plot(f):
         return f.replace("ssGSEA_", "ssGSEA-").replace("_", "-")
     return f
 
+
+def fig_dca(df=None):
+    """Figure: IPCW decision-curve analysis at 3 years (panels A-C)."""
+    dca = pd.read_csv(ROOT / "results" / "rewiring" / "dca_results.csv")
+    d3 = dca[dca["horizon"] == "3y"]
+    cohorts = ["LUAD", "BRCA", "KIRC"]
+    styles = {
+        "clinical": dict(color="#7F8C8D", ls="--", lw=1.4, label="Clinical (age+stage)"),
+        "clinical+risk": dict(color="#C0392B", ls="-", lw=1.8, label="Clinical + risk score"),
+        "risk": dict(color="#2980B9", ls="-", lw=1.4, label="Risk score"),
+        "treat_all": dict(color="#555555", ls=":", lw=1.2, label="Treat all"),
+    }
+    fig = plt.figure(figsize=(11.4, 3.4))
+    panels = []
+    for i, co in enumerate(cohorts):
+        ax = fig.add_axes([0.065 + 0.315 * i, 0.17, 0.27, 0.72])
+        for model, st in styles.items():
+            sub = d3[(d3["dataset"] == co) & (d3["model"] == model)].sort_values("threshold")
+            if model == "treat_all":
+                pass
+            ax.plot(sub["threshold"], sub["net_benefit"], **st)
+        ax.axhline(0.0, color="#999999", lw=0.9, ls="-", label="Treat none")
+        ax.set_title(f"{chr(65 + i)}  {co}", fontsize=10)
+        ax.set_xlabel("Threshold probability", fontsize=8)
+        ax.set_ylabel("Net benefit (3-year)", fontsize=8)
+        ax.set_ylim(-0.02, 0.15)
+        ax.tick_params(labelsize=7)
+        ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
+        panels.append(chr(65 + i))
+    fig.legend(loc="lower center", ncol=5, fontsize=7, frameon=False,
+               bbox_to_anchor=(0.5, -0.02))
+    fig.savefig(FIGDIR / "FigureDCA_dca.svg", format="svg")
+    fig.savefig(FIGDIR / "FigureDCA_dca.png", dpi=300)
+    plt.close(fig)
+    return "FigureDCA_dca.svg", panels
+
+
 GENERATORS = {
     "METHOD": fig_method, "BENCHMARK": fig_benchmark, "ABLATION": fig_ablation,
     "EXTERNAL": fig_external, "REWIRING": fig_rewiring, "IMV": fig_imvigor,
-    "IMMUNEDRUG": fig_immune_drug,
+    "IMMUNEDRUG": fig_immune_drug, "DCA": fig_dca,
 }
 
 def main():

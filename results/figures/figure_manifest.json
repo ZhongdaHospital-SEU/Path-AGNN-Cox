@@ -55,6 +55,15 @@
   ]
  },
  "Figure7": {
+  "token": "DCA",
+  "file": "FigureDCA_dca.svg",
+  "panels": [
+   "A",
+   "B",
+   "C"
+  ]
+ },
+ "Figure8": {
   "token": "IMMUNEDRUG",
   "file": "Figure7_immunedrug.svg",
   "panels": [
