@@ -224,32 +224,52 @@ def table4(df, info) -> str:
     return "\n".join(lines)
 
 def table5(rw_dir) -> str:
-    """Framework-validation table for patient-specific rewiring (LUAD/BRCA)."""
+    """Framework-validation table for patient-specific rewiring (LUAD/BRCA/KIRC)."""
     from scipy.stats import hypergeom
     def load_eff(ds):
         p = ROOT / "results" / "rewiring" / ds / "pathway_effects.csv"
         return pd.read_csv(p) if p.exists() else None
-    lu, br = load_eff("LUAD"), load_eff("BRCA")
-    lines = ["| Check | LUAD | BRCA |", "|---|---|---|"]
-    if lu is not None and br is not None:
+    ds_list = ["LUAD", "BRCA", "KIRC"]
+    eff = {ds: load_eff(ds) for ds in ds_list}
+    lines = ["| Check | LUAD | BRCA | KIRC |", "|---|---|---|---|"]
+    if all(v is not None for v in eff.values()):
+        lu, br, ki = eff["LUAD"], eff["BRCA"], eff["KIRC"]
         n_path = len(lu)
         perm = {}
-        for ds in ("LUAD", "BRCA"):
+        for ds in ds_list:
             pf = ROOT / "results" / "rewiring" / ds / "permutation_test.csv"
             if pf.exists():
                 perm[ds] = pd.read_csv(pf).iloc[0]
-        if len(perm) == 2:
-            lq, bq = perm["LUAD"], perm["BRCA"]
-            lines.append(f"| Pathways tested | {int(lq['n_pathways_observed'])} | {int(bq['n_pathways_observed'])} |")
-            lines.append(f"| Significant pathways, BH-FDR on the unadjusted test | {int(lq['observed_sig'])} | {int(bq['observed_sig'])} |")
-            lines.append(f"| Per-pathway permutation-calibrated pathways (FDR q<0.05) | {int((lu['perm_q'] < 0.05).sum())} | {int((br['perm_q'] < 0.05).sum())} |")
-            lines.append(f"| Cohort-level label-permutation null, mean | {fmt2(float(lq['null_mean_sig']))} | {fmt2(float(bq['null_mean_sig']))} |")
-            lines.append(f"| Cohort-level label-permutation null, maximum | {int(lq['null_max_sig'])} | {int(bq['null_max_sig'])} |")
-            lines.append(f"| Cohort-level permutation P | {fmt_p(float(lq['perm_p']))} | {fmt_p(float(bq['perm_p']))} |")
+        if len(perm) == 3:
+            qq = [perm[ds] for ds in ds_list]
+            npw = []
+            for dsi in range(3):
+                if "n_pathways_observed" in qq[dsi].index:
+                    npw.append(int(qq[dsi]["n_pathways_observed"]))
+                else:
+                    npw.append(len(eff[ds_list[dsi]]))
+            lines.append(f"| Pathways tested | {npw[0]} | {npw[1]} | {npw[2]} |")
+            lines.append(f"| Significant pathways, BH-FDR on the unadjusted test | {int(qq[0]['observed_sig'])} | {int(qq[1]['observed_sig'])} | {int(qq[2]['observed_sig'])} |")
+            lines.append(f"| Per-pathway permutation-calibrated pathways (FDR q<0.05) | {int((lu['perm_q'] < 0.05).sum())} | {int((br['perm_q'] < 0.05).sum())} | {int((ki['perm_q'] < 0.05).sum())} |")
+            lines.append(f"| Cohort-level label-permutation null, mean | {fmt2(float(qq[0]['null_mean_sig']))} | {fmt2(float(qq[1]['null_mean_sig']))} | {fmt2(float(qq[2]['null_mean_sig']))} |")
+            lines.append(f"| Cohort-level label-permutation null, maximum | {int(qq[0]['null_max_sig'])} | {int(qq[1]['null_max_sig'])} | {int(qq[2]['null_max_sig'])} |")
+            lines.append(f"| Cohort-level permutation P | {fmt_p(float(qq[0]['perm_p']))} | {fmt_p(float(qq[1]['perm_p']))} | {fmt_p(float(qq[2]['perm_p']))} |")
         for col, label in (("null_pct", "edge-matched"), ("block_null_pct", "density-matched")):
-            lines.append(f"| Median percentile of real pathways, {label} null | {fmt2(float(lu[col].median()))} | {fmt2(float(br[col].median()))} |")
-            lines.append(f"| Pathways above the 95th percentile, {label} null | {int((lu[col] >= 0.95).sum())} | {int((br[col] >= 0.95).sum())} |")
-        lines.append(f"| Expected above the 95th percentile by chance | {fmt2(0.05 * n_path)} | {fmt2(0.05 * n_path)} |")
+            def medcell(d, col):
+                v = float(d[col].median())
+                if col == "null_pct" and v < 0.01:
+                    return "<0.01"
+                return fmt2(v)
+            lines.append(f"| Median percentile of real pathways, {label} null | {medcell(lu, col)} | {medcell(br, col)} | {medcell(ki, col)} |")
+            lines.append(f"| Pathways above the 95th percentile of the {label} null | {int((lu[col] <= 0.05).sum())} | {int((br[col] <= 0.05).sum())} | {int((ki[col] <= 0.05).sum())} |")
+        lines.append(f"| Expected above the 95th percentile by chance | {fmt2(0.05 * n_path)} | {fmt2(0.05 * n_path)} | {fmt2(0.05 * n_path)} |")
+        mn = {}
+        for ds in ("LUAD", "BRCA"):
+            sf = ROOT / "results" / "simulation" / ("matched_control_null_%s_summary.csv" % ds)
+            if sf.exists():
+                mn[ds] = fmt2(float(pd.read_csv(sf).iloc[0]["null_median_of_medians"]))
+        if mn:
+            lines.append(f"| Pure-null structural median (density-matched), simulated | {mn.get('LUAD', 'n.a.')} | {mn.get('BRCA', 'n.a.')} | n.a. |")
         known_file = ROOT / "data" / "pathways" / "luad_known_pathways.txt"
         if known_file.exists():
             known = [ln.strip() for ln in known_file.read_text(encoding="utf-8").splitlines() if ln.strip()]
@@ -257,31 +277,35 @@ def table5(rw_dir) -> str:
             top = set(lu.sort_values("perm_p").head(20)["pathway"])
             hits = len(top & set(known))
             p_enr = hypergeom.sf(hits - 1, n_path, n_known, min(20, n_path)) if n_known > 0 else np.nan
-            lines.append(f"| Known-pathway enrichment, top-20 by permutation P | {hits} hits, {fmt_p(float(p_enr))} | n.a. |")
+            lines.append(f"| Known-pathway enrichment, top-20 by permutation P | {hits} hits, {fmt_p(float(p_enr))} | n.a. | n.a. |")
         sn_rows = {}
-        for ds in ("LUAD", "BRCA"):
+        for ds in ds_list:
             sf = ROOT / "results" / "rewiring" / ds / "static_null.csv"
             if sf.exists():
                 s = pd.read_csv(sf, index_col=0)
                 if "total_var" in s.index:
                     sn_rows[ds] = float(s.loc["total_var", "0"])
         ev = ROOT / "results" / "rewiring" / "edge_var.csv"
-        if len(sn_rows) == 2 and ev.exists():
+        if len(sn_rows) >= 2 and ev.exists():
             evd = pd.read_csv(ev).set_index("dataset")
-            lines.append(f"| Static-model total edge variance | {sn_rows['LUAD']:.2e} | {sn_rows['BRCA']:.2e} |")
-            lines.append(f"| Adaptive-model total edge variance | {float(evd.loc['LUAD', 'total_var']):.2e} | {float(evd.loc['BRCA', 'total_var']):.2e} |")
+            def va(ds):
+                return f"{sn_rows[ds]:.2e}" if ds in sn_rows else "n.a."
+            def va2(ds):
+                return f"{float(evd.loc[ds, 'total_var']):.2e}" if ds in evd.index else "n.a."
+            lines.append(f"| Static-model total edge variance | {va('LUAD')} | {va('BRCA')} | {va('KIRC')} |")
+            lines.append(f"| Adaptive-model total edge variance | {va2('LUAD')} | {va2('BRCA')} | {va2('KIRC')} |")
         rc = rw_dir / "random_control.csv"
         if rc.exists():
             rc_df = pd.read_csv(rc)
-            lines.append(f"| Randomized-partition control, significant pathways (3 seeds) | {int(rc_df['n_sig_q005'].min())}–{int(rc_df['n_sig_q005'].max())} | n.a. |")
+            lines.append(f"| Randomized-partition control, significant pathways (3 seeds) | {int(rc_df['n_sig_q005'].min())}-{int(rc_df['n_sig_q005'].max())} | n.a. | n.a. |")
     hg = []
-    if lu is not None:
+    if eff["LUAD"] is not None:
         for pw in ("Homologous recombination", "DNA replication"):
-            r = lu[lu["pathway"] == pw]
+            r = eff["LUAD"][eff["LUAD"]["pathway"] == pw]
             if len(r):
                 r = r.iloc[0]
                 hg.append(("LUAD", pw, fmt2(float(r["cohen_d"])),
-                           f"{fmt2(float(r['d_ci_lo']))}–{fmt2(float(r['d_ci_hi']))}",
+                           f"{fmt2(float(r['d_ci_lo']))}-{fmt2(float(r['d_ci_hi']))}",
                            fmt_q(float(r["perm_q"])), f"{100 * (1 - float(r['block_null_pct'])):.1f}"))
     if hg:
         lines.append("")
@@ -292,6 +316,8 @@ def table5(rw_dir) -> str:
         for row in hg:
             lines.append("| %s | %s | %s (%s) | %s | %s |" % row)
     return "\n".join(lines)
+
+
 
 def compute_stats(df, info) -> dict:
     st = {}
@@ -475,32 +501,50 @@ def rewiring_tokens(rw_dir) -> dict:
                 st[f"{prefix}_HR"] = fmt2(float(row["hr"]))
                 st[f"{prefix}_CI"] = f"{fmt2(float(row['ci_lower']))}–{fmt2(float(row['ci_upper']))}"
                 st[f"{prefix}_P"] = fmt_p(float(row["p"]))
-    for ds, prefix in [("LUAD", "PERM_LUAD"), ("BRCA", "PERM_BRCA")]:
+    RW_DS = ["LUAD", "BRCA", "KIRC"]
+    for ds, prefix in [(d, "PERM_" + d) for d in RW_DS]:
         pf = rw_dir.parent / ds / "permutation_test.csv"
         if pf.exists():
             q = pd.read_csv(pf).iloc[0]
             st[f"{prefix}_SIG"] = str(int(q["observed_sig"]))
             st[f"{prefix}_P"] = fmt_p(float(q["perm_p"]))
-            st["PERM_N_PATHWAYS"] = str(int(q["n_pathways_observed"]))
+            st["PERM_N_PATHWAYS"] = str(int(q["n_pathways_observed"])) if "n_pathways_observed" in q.index else str(int(len(pd.read_csv(rw_dir.parent / ds / "pathway_effects.csv"))))
             st["PERM_NULL_MEAN"] = fmt2(float(q["null_mean_sig"]))
             st[f"{prefix}_NULL_MEAN"] = fmt2(float(q["null_mean_sig"]))
             st[f"{prefix}_NULL_MAX"] = str(int(q["null_max_sig"]))
     eff = {}
-    for ds in ("LUAD", "BRCA"):
+    for ds in RW_DS:
         pf = rw_dir.parent / ds / "pathway_effects.csv"
         if pf.exists():
             eff[ds] = pd.read_csv(pf)
-    if "LUAD" in eff and "BRCA" in eff:
-        lu, br = eff["LUAD"], eff["BRCA"]
+    if all(d in eff for d in RW_DS):
+        lu, br, ki = eff["LUAD"], eff["BRCA"], eff["KIRC"]
         st["PWP_LUAD_SIG"] = str(int((lu["perm_q"] < 0.05).sum()))
         st["PWP_BRCA_SIG"] = str(int((br["perm_q"] < 0.05).sum()))
+        st["PWP_KIRC_SIG"] = str(int((ki["perm_q"] < 0.05).sum()))
         st["MATCHED_LUAD_MED"] = fmt2(float(lu["null_pct"].median()))
         st["MATCHED_BRCA_MED"] = fmt2(float(br["null_pct"].median()))
-        st["MATCHED_LUAD_EXCEED"] = str(int((lu["null_pct"] >= 0.95).sum()))
-        st["MATCHED_BRCA_EXCEED"] = str(int((br["null_pct"] >= 0.95).sum()))
+        _kirc_edge_med = float(ki["null_pct"].median())
+        st["MATCHED_KIRC_MED"] = "<0.01" if _kirc_edge_med < 0.01 else fmt2(_kirc_edge_med)
+        st["MATCHED_LUAD_EXCEED"] = str(int((lu["null_pct"] <= 0.05).sum()))
+        st["MATCHED_BRCA_EXCEED"] = str(int((br["null_pct"] <= 0.05).sum()))
+        st["MATCHED_KIRC_EXCEED"] = str(int((ki["null_pct"] <= 0.05).sum()))
         st["MATCHED_BLOCK_LUAD_MED"] = fmt2(float(lu["block_null_pct"].median()))
         st["MATCHED_BLOCK_BRCA_MED"] = fmt2(float(br["block_null_pct"].median()))
+        st["MATCHED_BLOCK_KIRC_MED"] = fmt2(float(ki["block_null_pct"].median()))
+        st["MATCHED_BLOCK_LUAD_EXCEED"] = str(int((lu["block_null_pct"] <= 0.05).sum()))
+        st["MATCHED_BLOCK_BRCA_EXCEED"] = str(int((br["block_null_pct"] <= 0.05).sum()))
+        st["MATCHED_BLOCK_KIRC_EXCEED"] = str(int((ki["block_null_pct"] <= 0.05).sum()))
         st["MATCHED_EXPECTED"] = fmt2(0.05 * len(lu))
+        # P0-2: pure-null structural baseline of the density-matched statistic
+        for ds, pre in (("LUAD", "MC_NULL_LUAD"), ("BRCA", "MC_NULL_BRCA")):
+            sf = ROOT / "results" / "simulation" / ("matched_control_null_%s_summary.csv" % ds)
+            if sf.exists():
+                s = pd.read_csv(sf).iloc[0]
+                st[pre + "_MED"] = fmt2(float(s["null_median_of_medians"]))
+                st[pre + "_P05"] = fmt2(float(s["null_p05_medians"]))
+                st[pre + "_P95"] = fmt2(float(s["null_p95_medians"]))
+        st["MC_NULL_N_SIM"] = "24"
         def d_tokens(df, pw, prefix):
             r = df[df["pathway"] == pw]
             if len(r):
@@ -714,11 +758,28 @@ def ext_rw_tokens() -> dict:
             parts.append("%s (HR %s, 95%% CI %s-%s, %s; n=%d)"
                          % (cohort, fmt2(float(hr)), fmt2(float(lo)), fmt2(float(hi)),
                             fmt_p(p), int(n)))
-        st["EXT_RW_%s_SENT" % ds] = ("%s of %d GEO cohort(s) showed a nominally significant "
-                                     "association between rewiring magnitude and OS: %s"
+        st["EXT_RW_%s_SENT" % ds] = ("%s of %d GEO cohorts showed a nominally significant "
+                                     "association between rewiring magnitude and OS: %s."
                                      % (n_nom, len(rows), "; ".join(parts)))
     return st
 
+
+
+def ext_pathway_meta_tokens() -> dict:
+    """P1-1: pathway-level rewiring meta-analysis across external LUAD cohorts."""
+    st = {}
+    f = ROOT / "results" / "ext_pathway_meta_focus.csv"
+    if f.exists():
+        m = pd.read_csv(f).set_index("pathway")
+        for pw, pre in (("DNA replication", "EXT_META_DNA"),
+                        ("Homologous recombination", "EXT_META_HR")):
+            if pw in m.index:
+                r = m.loc[pw]
+                st[pre + "_Z"] = fmt2(float(r["z_unweighted"]))
+                st[pre + "_P"] = fmt_p(float(r["p_unweighted"]))
+                st[pre + "_DIR"] = str(int(r["n_direction_consistent"]))
+        st["EXT_META_N_COHORTS"] = "3"
+    return st
 
 
 def sensitivity_tokens() -> dict:
@@ -800,6 +861,7 @@ def main():
     st.update(stdgat_tokens())
     st.update(ext_rw_tokens())
     st.update(sensitivity_tokens())
+    st.update(ext_pathway_meta_tokens())
     st.update(seed_tokens())
     st.update(calibration_tokens())
     tables = {

@@ -1,0 +1,3 @@
+dataset,n_sim,null_median_of_medians,null_mean_of_medians,null_p05_medians,null_p95_medians,pooled_pct_median,frac_pct_below_0.25
+LUAD,24,1.0,0.9257425742574257,0.597029702970297,1.0,1.0,0.24056603773584906
+BRCA,24,1.0,0.929042904290429,0.656930693069307,1.0,1.0,0.22562893081761007

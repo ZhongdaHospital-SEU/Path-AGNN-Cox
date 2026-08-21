@@ -1,0 +1,2 @@
+dataset,n_pathways,median_pct_mean,median_pct_topdec,median_pct_conc,median_pct_max,n_above50_mean,n_above50_topdec,n_above50_conc,n_above50_max,n_above95_topdec
+LUAD,53,91.5,87.0,46.0,82.0,47,48,23,45,19

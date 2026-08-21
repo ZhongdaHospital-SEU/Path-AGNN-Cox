@@ -1,0 +1,2 @@
+n_datasets,n_sets_per_pathway,n_pathway_obs,pct_mean,pct_median,pct_p05,pct_p95,frac_below_5,frac_above_95
+20,50,1060,50.049056603773586,50.0,4.0,98.0,0.06037735849056604,0.06886792452830189

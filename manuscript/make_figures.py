@@ -256,7 +256,8 @@ def fig_rewiring(df=None):
     # C: label-permutation null vs observed
     ax = fig.add_axes([0.07, 0.08, 0.28, 0.36])
     perm_files = [("LUAD", ROOT / "results" / "rewiring" / "LUAD" / "permutation_test.csv"),
-                  ("BRCA", ROOT / "results" / "rewiring" / "BRCA" / "permutation_test.csv")]
+                  ("BRCA", ROOT / "results" / "rewiring" / "BRCA" / "permutation_test.csv"),
+                  ("KIRC", ROOT / "results" / "rewiring" / "KIRC" / "permutation_test.csv")]
     if all(p.exists() for _, p in perm_files):
         obs, null_mean, null_max, perm_p = [], [], [], []
         for _, pf in perm_files:
@@ -265,8 +266,8 @@ def fig_rewiring(df=None):
             null_mean.append(float(q["null_mean_sig"]))
             null_max.append(int(q["null_max_sig"]))
             perm_p.append(float(q["perm_p"]))
-        grp = np.array([0.0, 1.7]); wd = 0.55
-        ax.bar(grp - wd / 2, obs, wd, color=["#C0392B", "#8E44AD"], alpha=0.9, label="Observed")
+        grp = np.array([0.0, 1.7, 3.4]); wd = 0.55
+        ax.bar(grp - wd / 2, obs, wd, color=["#C0392B", "#8E44AD", "#16A085"], alpha=0.9, label="Observed")
         ax.bar(grp + wd / 2, null_mean, wd, color="#BDC3C7", alpha=0.95,
                label="Permutation null (mean)")
         ax.scatter(grp + wd / 2, null_max, marker="_", s=150, color="#2C3E50", zorder=5,
@@ -279,10 +280,10 @@ def fig_rewiring(df=None):
             pv_txt = "P<0.001" if pv < 0.001 else "P=%.3f" % pv
             ax.text(x, max(o, null_max[i]) * 1.06 + 1.5, pv_txt, ha="center",
                     fontsize=7, color="#555555")
-        ax.set_xticks(grp); ax.set_xticklabels(["LUAD", "BRCA"])
+        ax.set_xticks(grp); ax.set_xticklabels(["LUAD", "BRCA", "KIRC"])
         ax.set_ylabel("Significant pathways (q<0.05)", fontsize=8)
         ax.set_ylim(0, max(obs) * 1.28)
-        ax.set_title("C  Rewiring vs label-permutation null (1,000 perms)", fontsize=9)
+        ax.set_title("C  Rewiring vs label-permutation null", fontsize=9)
         ax.legend(fontsize=6.5, frameon=False, loc="upper left")
         ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
         panels.append("C")
@@ -312,7 +313,7 @@ def fig_rewiring(df=None):
     # E: matched random-set controls (percentiles of real pathways)
     ax = fig.add_axes([0.73, 0.08, 0.24, 0.36])
     data, positions, labels = [], [], []
-    for i, ds in enumerate(["LUAD", "BRCA"]):
+    for i, ds in enumerate(["LUAD", "BRCA", "KIRC"]):
         ef = ROOT / "results" / "rewiring" / ds / "pathway_effects.csv"
         if not ef.exists():
             continue
@@ -331,10 +332,12 @@ def fig_rewiring(df=None):
         ax.axhline(0.95, color="#E67E22", ls=":", lw=0.9)
         ax.set_xticks(positions)
         ax.set_xticklabels(labels, fontsize=6, rotation=25, ha="right")
-        ax.set_ylabel("Percentile of real pathway effect", fontsize=8)
+        ax.set_ylabel("P(null effect >= real effect)", fontsize=8)
         ax.set_ylim(0, 1.05)
         ax.set_title("E  Matched random-set controls", fontsize=9)
-        ax.text(0.02, 0.97, "chance 0.50", transform=ax.transAxes, fontsize=6, color="#2C3E50")
+        ax.text(0.02, 0.97, "uniform 0.50", transform=ax.transAxes, fontsize=6, color="#2C3E50")
+        ax.text(0.02, 0.89, "structural-null median (LUAD/BRCA): 1.00", transform=ax.transAxes,
+                fontsize=5.6, color="#E67E22")
         ax.text(0.02, 0.905, "95th pct", transform=ax.transAxes, fontsize=6, color="#E67E22")
         ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
         panels.append("E")

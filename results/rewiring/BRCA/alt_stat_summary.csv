@@ -1,0 +1,2 @@
+dataset,n_pathways,median_pct_mean,median_pct_topdec,median_pct_conc,median_pct_max,n_above50_mean,n_above50_topdec,n_above50_conc,n_above50_max,n_above95_topdec
+BRCA,53,93.5,95.0,51.5,93.5,51,51,28,51,25
