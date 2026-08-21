@@ -264,12 +264,12 @@ def table5(rw_dir) -> str:
             lines.append(f"| Pathways above the 95th percentile of the {label} null | {int((lu[col] <= 0.05).sum())} | {int((br[col] <= 0.05).sum())} | {int((ki[col] <= 0.05).sum())} |")
         lines.append(f"| Expected above the 95th percentile by chance | {fmt2(0.05 * n_path)} | {fmt2(0.05 * n_path)} | {fmt2(0.05 * n_path)} |")
         mn = {}
-        for ds in ("LUAD", "BRCA"):
+        for ds in ("LUAD", "BRCA", "KIRC"):
             sf = ROOT / "results" / "simulation" / ("matched_control_null_%s_summary.csv" % ds)
             if sf.exists():
                 mn[ds] = fmt2(float(pd.read_csv(sf).iloc[0]["null_median_of_medians"]))
         if mn:
-            lines.append(f"| Pure-null structural median (density-matched), simulated | {mn.get('LUAD', 'n.a.')} | {mn.get('BRCA', 'n.a.')} | n.a. |")
+            lines.append(f"| Pure-null structural median (density-matched), simulated | {mn.get('LUAD', 'n.a.')} | {mn.get('BRCA', 'n.a.')} | {mn.get('KIRC', 'n.a.')} |")
         ad = ROOT / "results" / "rewiring" / "addendum_table.csv"
         if ad.exists():
             t = pd.read_csv(ad).set_index("dataset")
@@ -549,7 +549,7 @@ def rewiring_tokens(rw_dir) -> dict:
         st["MATCHED_BLOCK_KIRC_EXCEED"] = str(int((ki["block_null_pct"] <= 0.05).sum()))
         st["MATCHED_EXPECTED"] = fmt2(0.05 * len(lu))
         # P0-2: pure-null structural baseline of the density-matched statistic
-        for ds, pre in (("LUAD", "MC_NULL_LUAD"), ("BRCA", "MC_NULL_BRCA")):
+        for ds, pre in (("LUAD", "MC_NULL_LUAD"), ("BRCA", "MC_NULL_BRCA"), ("KIRC", "MC_NULL_KIRC")):
             sf = ROOT / "results" / "simulation" / ("matched_control_null_%s_summary.csv" % ds)
             if sf.exists():
                 s = pd.read_csv(sf).iloc[0]
@@ -584,7 +584,7 @@ def calibration_tokens() -> dict:
     if not csv.exists():
         return st
     df = pd.read_csv(csv)
-    for ds, pre in (("LUAD", "CAL_LUAD"), ("BRCA", "CAL_BRCA")):
+    for ds, pre in (("LUAD", "CAL_LUAD"), ("BRCA", "CAL_BRCA"), ("KIRC", "CAL_KIRC")):
         for model, mpre in (("path_agnn_cox", "PATH"), ("ridge_cox", "RIDGE")):
             sub = df[(df["dataset"] == ds) & (df["setting"] == "internal") & (df["model"] == model)]
             if len(sub):
@@ -732,7 +732,7 @@ def imv_tokens() -> dict:
 def stdgat_tokens() -> dict:
     """Standard-GAT negative control: significant pathways under identical tests."""
     st = {}
-    for ds in ("LUAD", "BRCA"):
+    for ds in ("LUAD", "BRCA", "KIRC"):
         p = ROOT / "results" / "rewiring" / ds / "stdgat_pathway_test.csv"
         n_sig = n_tot = None
         if p.exists():
@@ -747,7 +747,7 @@ def stdgat_tokens() -> dict:
 def ext_rw_tokens() -> dict:
     """External rewiring replication: per-cohort HR of high vs low rewiring."""
     st = {}
-    for ds in ("LUAD", "BRCA"):
+    for ds in ("LUAD", "BRCA", "KIRC"):
         d = ROOT / "results" / "rewiring_external" / ds
         rows = []
         if d.is_dir():
@@ -770,9 +770,16 @@ def ext_rw_tokens() -> dict:
             parts.append("%s (HR %s, 95%% CI %s-%s, %s; n=%d)"
                          % (cohort, fmt2(float(hr)), fmt2(float(lo)), fmt2(float(hi)),
                             fmt_p(p), int(n)))
-        st["EXT_RW_%s_SENT" % ds] = ("%s of %d GEO cohorts showed a nominally significant "
-                                     "association between rewiring magnitude and OS: %s."
-                                     % (n_nom, len(rows), "; ".join(parts)))
+        if ds == "KIRC" and len(rows) == 1:
+            cohort, n, hr, lo, hi, p = rows[0]
+            st["EXT_RW_%s_SENT" % ds] = (
+                "The sole evaluable KIRC cohort, %s (n=%d), showed no significant association "
+                "between rewiring magnitude and OS (HR %s, 95%% CI %s–%s, %s)"
+                % (cohort, int(n), fmt2(float(hr)), fmt2(float(lo)), fmt2(float(hi)), fmt_p(p)))
+        else:
+            st["EXT_RW_%s_SENT" % ds] = ("%s of %d GEO cohorts showed a nominally significant "
+                                         "association between rewiring magnitude and OS: %s."
+                                         % (n_nom, len(rows), "; ".join(parts)))
     return st
 
 
