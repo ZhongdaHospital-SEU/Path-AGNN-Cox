@@ -270,6 +270,16 @@ def table5(rw_dir) -> str:
                 mn[ds] = fmt2(float(pd.read_csv(sf).iloc[0]["null_median_of_medians"]))
         if mn:
             lines.append(f"| Pure-null structural median (density-matched), simulated | {mn.get('LUAD', 'n.a.')} | {mn.get('BRCA', 'n.a.')} | n.a. |")
+        ad = ROOT / "results" / "rewiring" / "addendum_table.csv"
+        if ad.exists():
+            t = pd.read_csv(ad).set_index("dataset")
+            def cell(ds, col, fmt=lambda v: fmt2(float(v)) if pd.notna(v) else "n.a."):
+                if ds not in t.index:
+                    return "n.a."
+                return fmt(t.loc[ds, col])
+            lines.append(f"| Global attention shift, high vs low risk (P) | {cell('LUAD','global_p',fmt_p)} | {cell('BRCA','global_p',fmt_p)} | {cell('KIRC','global_p',fmt_p)} |")
+            lines.append(f"| Pathway-specific rewiring after global-shift removal (q<0.05) | {cell('LUAD','n_sig_specific_q005',lambda v: str(int(v)))} | {cell('BRCA','n_sig_specific_q005',lambda v: str(int(v)))} | {cell('KIRC','n_sig_specific_q005',lambda v: str(int(v)))} |")
+            lines.append(f"| Significant pathways under MKI67-stratified anchor (q<0.05) | {cell('LUAD','n_sig_anchor_mki67',lambda v: str(int(v)))} | {cell('BRCA','n_sig_anchor_mki67',lambda v: str(int(v)))} | {cell('KIRC','n_sig_anchor_mki67',lambda v: str(int(v)))} |")
         known_file = ROOT / "data" / "pathways" / "luad_known_pathways.txt"
         if known_file.exists():
             known = [ln.strip() for ln in known_file.read_text(encoding="utf-8").splitlines() if ln.strip()]
@@ -782,6 +792,36 @@ def ext_pathway_meta_tokens() -> dict:
     return st
 
 
+def addendum_tokens() -> dict:
+    """P0 addendum: global-shift decomposition, independent anchors, direction."""
+    st = {}
+    f = ROOT / "results" / "rewiring" / "addendum_table.csv"
+    if f.exists():
+        t = pd.read_csv(f).set_index("dataset")
+        for ds, pre in (("LUAD", "ADD_LUAD"), ("BRCA", "ADD_BRCA"), ("KIRC", "ADD_KIRC")):
+            if ds in t.index:
+                r = t.loc[ds]
+                st[pre + "_GLOBAL_P"] = fmt_p(float(r["global_p"]))
+                st[pre + "_GLOBAL_D"] = fmt2(float(r["global_d"]))
+                st[pre + "_SPECIFIC"] = str(int(r["n_sig_specific_q005"]))
+                st[pre + "_RAW"] = str(int(r["n_sig_raw_perm"]))
+                if pd.notna(r["n_sig_anchor_mki67"]):
+                    st[pre + "_ANCHOR_MK"] = str(int(r["n_sig_anchor_mki67"]))
+                if pd.notna(r["n_sig_anchor_tmb"]):
+                    st[pre + "_ANCHOR_TMB"] = str(int(r["n_sig_anchor_tmb"]))
+                if pd.notna(r["n_sig_anchor_stage"]):
+                    st[pre + "_ANCHOR_STAGE"] = str(int(r["n_sig_anchor_stage"]))
+    pk = ROOT / "results" / "rewiring" / "addendum_summary.pkl"
+    if pk.exists():
+        import pickle
+        d = pickle.load(open(pk, "rb"))["direction"]
+        st["ADD_BK_SHARED"] = str(int(d["n_shared_sig"]))
+        st["ADD_BK_CONCORD"] = fmt2(100 * float(d["concordance"]))
+        st["ADD_BK_RHO"] = fmt2(float(d["spearman_d_adj_all"]))
+        st["ADD_BK_P"] = fmt_p(float(d["spearman_p"]))
+    return st
+
+
 def sensitivity_tokens() -> dict:
     """Robustness of clinical anchors to the rewiring-magnitude definition."""
     p = ROOT / "results" / "rewiring" / "sensitivity_magnitude.csv"
@@ -861,6 +901,7 @@ def main():
     st.update(stdgat_tokens())
     st.update(ext_rw_tokens())
     st.update(sensitivity_tokens())
+    st.update(addendum_tokens())
     st.update(ext_pathway_meta_tokens())
     st.update(seed_tokens())
     st.update(calibration_tokens())

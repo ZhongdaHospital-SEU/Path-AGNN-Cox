@@ -1,0 +1,9 @@
+dataset,anchor,n_hi,n_lo,n_sig_q005,top_pathway
+LUAD,stage,413,106,0,Hippo signaling pathway
+LUAD,tmb,261,261,9,Antigen processing and presentation
+LUAD,mki67,264,263,11,Antigen processing and presentation
+BRCA,stage,799,264,2,TGF-beta signaling pathway
+BRCA,tmb,508,503,30,Hippo signaling pathway
+BRCA,mki67,543,543,33,Hippo signaling pathway
+KIRC,tmb,185,181,0,Ras signaling pathway
+KIRC,mki67,267,266,24,Chemical carcinogenesis
