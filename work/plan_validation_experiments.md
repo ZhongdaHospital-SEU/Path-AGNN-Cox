@@ -1,4 +1,4 @@
-﻿# ② 强外部生物学验证方案（GDSC 真实药敏 + ICB 免疫治疗队列）
+# ② 强外部生物学验证方案（GDSC 真实药敏 + ICB 免疫治疗队列）
 
 目标：为“通路重连”提供独立于 in-silico 预测与训练数据的生物学证据，支撑冲 Briefings/CSBJ 的审稿论证。
 验收标准：至少一个方向的验证显著（FDR<0.05），或 ≥4 个 ICB 队列方向一致。
@@ -81,3 +81,69 @@
 - [ ] A：≥1 个（通路, 药物）在真实 IC50 上 FDR<0.05 且方向与 in-silico 一致
 - [ ] B：合并效应量 P<0.05 且 I²<75%，或 ≥4 队列方向一致
 - [ ] 产出并入正文后：check_formatting.py 全过、docx 重建、提交推送
+
+
+---
+
+## 方案 A 执行结果（2026-08-22）：判定为阴性，不入稿
+
+### 做了什么
+1. GDSC2 真实 IC50（198 药物 × 805 细胞系）+ RMA 标准化表达 + 细胞系组织注释，完整管线落盘 `results/gdsc/`。
+2. 模板：TCGA-BRCA 高危-低危相关差（43 个 q<0.05 重连通路）投影到 GDSC2 细胞系表达，对 17 个 curated 药物（与 Table 9 同款）做 Spearman + BH-FDR。
+
+### 关键数字
+- 全细胞系原始表达：313/731 对 q<0.05（42.8%）。
+- 组织中心化后：74/731 q<0.05（10.1%）→ 关联主要来自组织类型混杂。
+- 仅乳腺癌细胞系（49 系）：0/731 q<0.05。
+- 配对 Wilcoxon（真实 |rho| vs 同通路 50 个随机基因集 |rho|，逐药物）：17 个药物全部 P>0.05（最小 0.0599）。
+
+### 结论
+真实通路关联不能与随机基因集区分，GDSC2 药敏验证不成立，**不写入论文**，保留结果文件备查。教训：跨组织/跨平台投影必须做组织中心化对照，否则会产生全局伪影。
+
+---
+
+## 方案 B 执行状态（2026-08-22 启动）
+
+### 队列与数据
+- 本地已有：IMvigor210（膀胱癌 ICB，`data/processed/IMvigor210/`，含 pathway_test + risk_scores）。
+- 下载中（`work/download_icb2.py` → `data/raw/ICB/`）：
+  - GSE91061（Riaz 2017，黑色素瘤 anti-PD-L1，n≈42）：series matrix + FPKM 表达
+  - GSE78220（Hugo 2016，黑色素瘤 anti-PD-1，n≈28）：series matrix + PatientFPKM.xlsx
+  - GSE100797（Lauss 2017，黑色素瘤 anti-CTLA-4，n≈28）：series matrix + ProcessedData
+- 下载中（`work/dl_tcga_skcm.ps1` → `data/raw/TCGA-xena/TCGA-SKCM.*.tsv.gz`）：SKCM 模板。
+- 待评估：Gide 2019（ArrayExpress E-MTAB-7950）、Liu 2019（dbGaP 受控，估计不可用）。
+
+### 分析设计（吸取方案 A 教训）
+1. 模板必须同癌种：SKCM 队列用 TCGA-SKCM 高危-低危相关差；IMvigor210 用 TCGA-BLCA（本地已有）或直接沿用模型输出的 risk_scores。
+2. 队列内检验：响应 CR/PR vs SD/PD 的 Wilcoxon（重连评分），OS 高/低分层 log-rank。
+3. 跨队列 meta：Hedges g 随机效应 + I² + leave-one-out；验收：合并 P<0.05 或 ≥4 队列方向一致。
+4. 组织内 z-score 表达（同癌种，避免跨组织混杂）。
+
+
+---
+
+## 方案 B 执行结果（2026-08-22）：部分成立，建议以探索性方式入稿
+
+### 数据（全部下载并解析完成）
+- TCGA-SKCM（98 肿瘤样本，28 OS 事件）：`data/processed/SKCM/train.csv`
+- GSE91061（51 Pre 样本，49 例可分析：10 响应/39 非响应）
+- GSE78220（28 例：15 响应/12 非响应，1 例 NA）
+- GSE100797（25 例：10 响应/15 非响应；anti-CTLA-4 队列）
+- IMvigor210（298 例：68 响应/230 非响应；BLCA 模板）
+
+### 队列内结果（模板=同癌种 TCGA OS 事件分层相关差；队列内 z-score）
+| 队列 | 模板 | n | g | Wilcoxon P | 随机 null 百分位 |
+|---|---|---|---|---|---|
+| IMvigor210 | BLCA | 298 | +0.305 | 0.019 | 96.2% |
+| GSE91061 | SKCM | 49 | +0.056 | 0.682 | 48.9% |
+| GSE78220 | SKCM | 27 | +0.169 | 0.393 | 71.1% |
+| GSE100797 | SKCM | 25 | -0.604 | 0.174 | 19.4% |
+
+### Meta
+- 全 4 队列：g=0.104，P=0.561，I²=33% —— 不显著
+- anti-PD-1/PD-L1 亚组 3 队列：g=0.262，P=0.032，I²=0% —— 显著但 IMvigor210 权重 78%，且其余两队列效应不超随机对照
+
+### 结论
+- IMvigor210 独立成立：BLCA 预后相关重连模板评分与 anti-PD-L1 响应显著相关且超过随机基因集对照（96.2% 百分位）。
+- 3 个黑色素瘤 ICB 队列无法与随机基因集区分，其中 anti-CTLA-4 队列方向为负。
+- 入稿建议：正文 3.4.3 以探索性措辞补充 IMvigor210 发现（一句到两句 + 随机对照说明），同时如实报告黑色素瘤队列未复现（写为 Limitations 或同段"需前瞻验证"），不新增 Figure/Table。
