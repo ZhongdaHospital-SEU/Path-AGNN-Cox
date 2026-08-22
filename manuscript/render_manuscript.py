@@ -700,7 +700,7 @@ def imv_tokens() -> dict:
         except (TypeError, ValueError):
             pass
         st["IMV_RESULT_SENTENCE"] = (
-            "the rewiring magnitude differed between responders (CR/PR) and non-responders (SD/PD) "
+            "the rewiring magnitude was numerically higher in responders (CR/PR) than in non-responders (SD/PD) "
             "(median %s vs %s; Wilcoxon %s; n=%s/%s)" % (mr, mn, wp, nr, nn))
         if "os_P" in s and pd.notna(s.get("os_P")):
             hr = f("os_hr"); lo = f("os_hr_lo"); hi = f("os_hr_hi")
@@ -895,7 +895,7 @@ def sensitivity_tokens() -> dict:
 def seed_tokens() -> dict:
     """Three-seed sensitivity on LUAD/BRCA (mean +/- SD over 3 seeds x 5 folds)."""
     st = {}
-    for ds in ("LUAD", "BRCA"):
+    for ds in ("LUAD", "BRCA", "KIRC"):
         p = ROOT / "results" / ("seed_analysis_%s.csv" % ds)
         if p.exists():
             t = pd.read_csv(p)
