@@ -168,3 +168,22 @@
 - 横断面 On 名义 P=0.032 但未超出随机基因集对照，属多重检验波动；配对 Δ 无显著差异，响应者 Δ 更负仅为探索性趋势。
 - GSE91061 无论 Pre 还是 On 时间点均不提供稳健支持证据；已如实写入手稿 3.4.3 作为时间点敏感性检查。
 - 未并入 meta（On 与 Pre 患者重叠，避免重复计数）。
+
+
+---
+
+## 方案 B 补充：GSE225066（NEODURVARIB）BLCA 模板验证（2026-08-23）
+
+### 数据
+- NEODURVARIB 试验（durvalumab + olaparib 新辅助，可切除尿路上皮癌；CCR 2025，PMID 40298406；GEO GSE225066）。
+- GEO 表达文件 `GSE225066_samples.normalizedCounts.txt.gz`：26 例样本（16 例治疗前 TURBT 活检 SCRNEO + 10 例治疗后膀胱切除 QNEO），32722 基因。
+- 每例患者病理响应从论文补充表 S5 提取（StudySubjectID -> Genetic Studies ID -> R-{N} SCR）；治疗前样本 16 例：10 响应（病理完全缓解/无残留）对 6 非响应（残留或进展）。
+
+### 结果（BLCA 模板，治疗前 SCRNEO）
+- n=16，Hedges g=0.05，Wilcoxon P=1.000；随机基因集对照百分位 79.9%（2,850 个对照）——无关联，方向略正但不可与随机区分。
+- BLCA 模板三队列 meta（IMvigor210 + GSE176307 + GSE225066）：g=0.27，95% CI 0.03-0.51，P=0.025，I2=0%；信号由两个 RECIST 队列承载，新队列无独立贡献。
+- 两队列 RECIST meta 不变：g=0.28，P=0.022。
+
+### 结论
+- GSE225066 为阴性敏感性队列（新辅助 + 病理响应终点 + PARP 抑制剂联合，与 RECIST 转移性队列不可直接类比）；已如实写入手稿 3.4.3 与 cover letter。
+- GSE298296（新辅助 pembrolizumab，102 CEL，HuEx-1_0-st-v2）因 GEO 无响应注释（需付费论文补充表）且需 Affymetrix 外显子芯片处理，暂缓。

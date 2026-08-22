@@ -1,0 +1,2 @@
+cohort,n,n_resp,n_nonresp,g,v,wilcox_P,random_null_percentile,random_null_median
+GSE225066,16,10,6,0.05206963578956915,0.2667614512692006,1.0,0.7985964912280702,-0.3536807682830396
