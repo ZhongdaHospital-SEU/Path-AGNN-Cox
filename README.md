@@ -5,7 +5,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/path-agnn-cox.svg)](https://pypi.org/project/path-agnn-cox/)
 [![Python versions](https://img.shields.io/pypi/pyversions/path-agnn-cox.svg)](https://pypi.org/project/path-agnn-cox/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![GitHub release](https://img.shields.io/github/v/release/wangzhipeng-1/Path-AGNN-Cox)](https://github.com/wangzhipeng-1/Path-AGNN-Cox/releases)
+[![GitHub release](https://img.shields.io/github/v/release/ZhongdaHospital-SEU/Path-AGNN-Cox)](https://github.com/ZhongdaHospital-SEU/Path-AGNN-Cox/releases)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22030045.svg)](https://doi.org/10.5281/zenodo.22030045)
 
 Repository for the manuscript *"Path-AGNN-Cox: a reproducible statistical
@@ -44,7 +44,7 @@ views) suppresses overfitting in high-heterogeneity cohorts.
 - Manuscript: [`manuscript/Path-AGNN-Cox_manuscript.md`](manuscript/Path-AGNN-Cox_manuscript.md)
 - Results: [`results/`](results/) (C-index tables, rewiring statistics, figures)
 - Quickstart notebook: [`examples/Path-AGNN-Cox_quickstart.ipynb`](examples/Path-AGNN-Cox_quickstart.ipynb)
-  [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/wangzhipeng-1/Path-AGNN-Cox/blob/main/examples/Path-AGNN-Cox_quickstart.ipynb)
+  [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ZhongdaHospital-SEU/Path-AGNN-Cox/blob/main/examples/Path-AGNN-Cox_quickstart.ipynb)
 - Zenodo archive (v0.1.1): [10.5281/zenodo.22030045](https://doi.org/10.5281/zenodo.22030045)
 
 ## Install
@@ -174,6 +174,6 @@ Zenodo archive (v0.1.1): [10.5281/zenodo.22030045](https://doi.org/10.5281/zenod
   year    = {2026},
   publisher = {Zenodo},
   doi     = {10.5281/zenodo.22030045},
-  url     = {https://github.com/wangzhipeng-1/Path-AGNN-Cox}
+  url     = {https://github.com/ZhongdaHospital-SEU/Path-AGNN-Cox}
 }
 ```

@@ -60,7 +60,7 @@ add(d, "Conflict of interest statement", bold=True)
 add(d, "The authors declare no competing interests.")
 add(d, "")
 add(d, "Code and data availability", bold=True)
-add(d, "All code is publicly available at https://github.com/wangzhipeng-1/Path-AGNN-Cox (MIT license) and installable via PyPI as path-agnn-cox (pip install path-agnn-cox). An archived snapshot is deposited on Zenodo. All data are from public repositories (TCGA via UCSC Xena and GDC; GEO; IMvigor210); per-patient data are not redistributed to protect privacy, and aggregate results required to reproduce every table and figure are provided in the repository.")
+add(d, "All code is publicly available at https://github.com/ZhongdaHospital-SEU/Path-AGNN-Cox (MIT license) and installable via PyPI as path-agnn-cox (pip install path-agnn-cox). An archived snapshot is deposited on Zenodo. All data are from public repositories (TCGA via UCSC Xena and GDC; GEO; IMvigor210); per-patient data are not redistributed to protect privacy, and aggregate results required to reproduce every table and figure are provided in the repository.")
 d.save(r"manuscript/title_page.docx")
 print("title_page.docx saved")
 

@@ -54,7 +54,7 @@ for line in ["- Abstract: ~300 words", "- Main text: ~5,000 words (Introduction 
 para(doc, "Conflict of interest statement", bold=True, space_after=4)
 para(doc, "The authors declare no competing financial interests.", space_after=12)
 para(doc, "Code and data availability", bold=True, space_after=4)
-para(doc, "All code is publicly available at https://github.com/wangzhipeng-1/Path-AGNN-Cox (MIT license) and installable via PyPI as `path-agnn-cox` (pip install path-agnn-cox); a versioned archive is available at Zenodo (https://doi.org/10.5281/zenodo.22030045). Processed datasets and full reproducible pipelines are provided; raw TCGA and GEO data are publicly available from their original sources.", space_after=12)
+para(doc, "All code is publicly available at https://github.com/ZhongdaHospital-SEU/Path-AGNN-Cox (MIT license) and installable via PyPI as `path-agnn-cox` (pip install path-agnn-cox); a versioned archive is available at Zenodo (https://doi.org/10.5281/zenodo.22030045). Processed datasets and full reproducible pipelines are provided; raw TCGA and GEO data are publicly available from their original sources.", space_after=12)
 doc.save(OUT / "title_page.docx")
 print("title_page.docx OK")
 
@@ -84,7 +84,7 @@ for text in [
     "IMvigor210CoreBiologies R/Bioconductor package (https://github.com/BioInfoCloud/IMvigor210CoreBiologies).",
     "Processed training matrices, external cohort matrices, clinical annotations, and all analysis "
     "outputs required to reproduce the figures and tables of this manuscript are provided in the "
-    "associated GitHub repository (https://github.com/wangzhipeng-1/Path-AGNN-Cox) and as a pip-installable Python package (`path-agnn-cox`; Zenodo archive: https://doi.org/10.5281/zenodo.22030045).",
+    "associated GitHub repository (https://github.com/ZhongdaHospital-SEU/Path-AGNN-Cox) and as a pip-installable Python package (`path-agnn-cox`; Zenodo archive: https://doi.org/10.5281/zenodo.22030045).",
     "No new biological data were generated in this study.",
 ]:
     para(doc, text, space_after=10)

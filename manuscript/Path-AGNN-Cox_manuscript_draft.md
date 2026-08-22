@@ -24,7 +24,7 @@ TBD (author list to be completed by corresponding author)
 
 **Results:** We propose **Path-AGNN-Cox**, a pathway-constrained adaptive graph neural network that learns a **sample-specific pathway graph** for survival prediction. Path-AGNN-Cox (i) partitions genes into KEGG cancer-core pathway modules and restricts message passing to biologically co-regulated gene pairs; (ii) introduces a learnable malignancy-modulated neighborhood gate that adaptively sharpens or flattens within-pathway attention according to a per-sample malignancy score, so that the effective gene-interaction topology tightens for aggressive tumors; and (iii) optimizes a Cox partial-likelihood objective with dual regularization—intra-pathway sparsity plus a dropout-consistency constraint—to suppress overfitting in high-heterogeneity cohorts. We benchmarked Path-AGNN-Cox against eight classical and deep survival baselines plus two static pathway-GNN controls across 11 TCGA cancer types (5336 patients) under stratified 5-fold cross-validation, and validated transferability on 25 independent GEO cohorts spanning the same tumor types—the largest external validation reported for a pathway-constrained survival GNN. Path-AGNN-Cox achieved the highest mean C-index in 0/11 internal evaluations (mean C-index 0.56 vs. 0.62 for the best baseline; P=P=0.010) and 1/11 external evaluations (0.52 vs. 0.57). Ablations confirmed that every module—pathway constraint, adaptive neighborhood gate, and dual regularization—contributes significant gains. Beyond discrimination, the learned sample-specific edge weights are biologically interpretable: rewiring between high- and low-risk patients concentrates in known cancer driver pathways, correlates with clinical indicators of malignancy, and is absent by construction in static pathway models.
 
-**Availability and implementation:** Source code, preprocessing pipelines (R + Python), and a PyPI-installable package with example notebooks are available at https://github.com/wangzhipeng-1/Path-AGNN-Cox.
+**Availability and implementation:** Source code, preprocessing pipelines (R + Python), and a PyPI-installable package with example notebooks are available at https://github.com/ZhongdaHospital-SEU/Path-AGNN-Cox.
 
 **Key words:** survival analysis; graph neural networks; pathway prior; adaptive graph learning; cancer prognosis; interpretability
 
@@ -161,7 +161,7 @@ Path-AGNN-Cox demonstrates that a pathway-constrained GNN whose graph structure 
 
 ## 6. Availability and implementation
 
-- **Code:** https://github.com/wangzhipeng-1/Path-AGNN-Cox (MIT license; Python package `path_agnn_cox`, R preprocessing scripts in `data/scripts/`).
+- **Code:** https://github.com/ZhongdaHospital-SEU/Path-AGNN-Cox (MIT license; Python package `path_agnn_cox`, R preprocessing scripts in `data/scripts/`).
 - **Installation:** `pip install path-agnn-cox`; example notebooks under `examples/`.
 - **Data:** TCGA RNA-seq and clinical data from UCSC Xena (https://xenabrowser.net); GEO series matrices and platform annotations from NCBI GEO (https://www.ncbi.nlm.nih.gov/geo/); all accession numbers listed in Table 1.
 - **Reproduction:** `paper/` contains the exact commands to reproduce every table and figure in this manuscript.

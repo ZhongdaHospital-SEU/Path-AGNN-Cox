@@ -67,3 +67,6 @@ results/icb/*_clinical.csv
 
 # Patient-level ICB meta (privacy: not committed)
 results/icb/*_meta.csv
+
+# Per-patient derived scores (privacy)
+results/icb/*_delta.csv
