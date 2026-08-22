@@ -27,7 +27,7 @@ OUT = ROOT / "manuscript" / "Path-AGNN-Cox_manuscript.docx"
 MANIFEST = ROOT / "results" / "figures" / "figure_manifest.json"
 
 BOLD = re.compile(r"\*\*(.+?)\*\*")
-ITAL = re.compile(r"(?<!\*)\*([^*\n]+?)\*(?!\*)")
+ITAL = re.compile(r"(?<!\*)\*([^*\[\]\n]+?)\*(?!\*)")
 
 def add_runs(par, text, base_bold=False):
     """Add text to paragraph, honoring **bold** and *italic* markers."""
@@ -40,7 +40,19 @@ def add_runs(par, text, base_bold=False):
     if pos < len(text):
         add_runs_plain(par, text[pos:], base_bold)
 
+UNDER = re.compile(r"(?<!\w)_([^_\n]+?)_(?!\w)")
+
 def add_runs_plain(par, text, base_bold=False):
+    pos = 0
+    for m in UNDER.finditer(text):
+        if m.start() > pos:
+            _add_ital(par, text[pos:m.start()], base_bold)
+        r = par.add_run(m.group(1)); r.italic = True; r.bold = base_bold
+        pos = m.end()
+    if pos < len(text):
+        _add_ital(par, text[pos:], base_bold)
+
+def _add_ital(par, text, base_bold=False):
     pos = 0
     for m in ITAL.finditer(text):
         if m.start() > pos:
@@ -121,6 +133,18 @@ def main():
             continue
         if s == "---":
             i += 1
+            continue
+        # code fences: emit verbatim, no markdown formatting
+        if s.startswith("```"):
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                par = doc.add_paragraph()
+                r = par.add_run(lines[i])
+                r.font.name = "Consolas"
+                r.font.size = Pt(9.5)
+                par.paragraph_format.space_after = Pt(0)
+                i += 1
+            i += 1  # skip closing fence
             continue
         # tables: detect a block of consecutive lines starting with |
         if s.startswith("|") and i + 1 < len(lines) and lines[i + 1].strip().startswith("|"):
