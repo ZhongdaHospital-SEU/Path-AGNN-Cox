@@ -64,3 +64,6 @@ _tmp.gmt
 results/icb/*_expr*.csv
 results/icb/*_clinical.csv
 
+
+# Patient-level ICB meta (privacy: not committed)
+results/icb/*_meta.csv
