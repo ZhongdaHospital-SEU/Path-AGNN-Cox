@@ -10,9 +10,13 @@ OUT = ROOT / "manuscript"
 
 TITLE = ("Path-AGNN-Cox: a reproducible statistical framework for testing "
          "patient-specific pathway rewiring in cancer survival analysis")
-AUTHORS = "[Author 1], [Author 2], ... [Author N]"
-AFFIL = ("[Department, University, City, Country]")
-CORR = ("Corresponding author: [Name], [Email], [Full postal address]")
+AUTHORS = ("Zhipeng Wang[1,*], Luning Wang[2,*], Changsong Wang[1,†], Pengli Zhai[3], "
+           "Zejun Liu[1], Hui Feng[1], Hongmei Liu[1], Qian Hou[1], Ming Guo[1]")
+AFFIL = ("1 Department of TCM, Zhongda Hospital, Southeast University, China; "
+         "2 Department of Rehabilitation Medicine, Zhongda Hospital, Southeast University, China; "
+         "3 Jiangbei Campus, Jiangsu Provincial Traditional Chinese Medicine Hospital, China")
+CORR = ("Corresponding author: Changsong Wang, Department of TCM, Zhongda Hospital, Southeast University, "
+        "China. Email: 101005664@seu.edu.cn")
 
 def new_doc():
     doc = Document()
@@ -44,7 +48,7 @@ para(doc, "survival analysis; graph neural network; pathway rewiring; KEGG; inte
           "patient-specific graphs; reproducibility", space_after=12)
 para(doc, "Manuscript statistics", bold=True, space_after=4)
 for line in ["- Abstract: ~300 words", "- Main text: ~5,000 words (Introduction to Conclusion)",
-             "- Figures: 7 (Figures 1-7)", "- Tables: 7 (Tables 1-7)",
+             "- Figures: 8 (Figures 1-8)", "- Tables: 9 (Tables 1-9)",
              "- Supplementary: none (all methods and tables integrated in the main text)"]:
     para(doc, line, space_after=2)
 para(doc, "Conflict of interest statement", bold=True, space_after=4)
