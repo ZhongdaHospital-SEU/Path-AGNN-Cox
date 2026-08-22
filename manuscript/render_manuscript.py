@@ -310,23 +310,6 @@ def table5(rw_dir) -> str:
         if rc.exists():
             rc_df = pd.read_csv(rc)
             lines.append(f"| Randomized-partition control, significant pathways (3 seeds) | {int(rc_df['n_sig_q005'].min())}-{int(rc_df['n_sig_q005'].max())} | n.a. | n.a. |")
-    hg = []
-    if eff["LUAD"] is not None:
-        for pw in ("Homologous recombination", "DNA replication"):
-            r = eff["LUAD"][eff["LUAD"]["pathway"] == pw]
-            if len(r):
-                r = r.iloc[0]
-                hg.append(("LUAD", pw, fmt2(float(r["cohen_d"])),
-                           f"{fmt2(float(r['d_ci_lo']))}-{fmt2(float(r['d_ci_hi']))}",
-                           fmt_q(float(r["perm_q"])), f"{100 * (1 - float(r['block_null_pct'])):.1f}"))
-    if hg:
-        lines.append("")
-        lines.append("Hypothesis-generating pathways that exceeded the per-pathway permutation null and the density-matched control:")
-        lines.append("")
-        lines.append("| Cancer | Pathway | Cohen's d (95% CI) | Permutation q | Density-matched percentile |")
-        lines.append("|---|---|---|---|---|")
-        for row in hg:
-            lines.append("| %s | %s | %s (%s) | %s | %s |" % row)
     return "\n".join(lines)
 
 
@@ -654,27 +637,23 @@ def immune_drug_tokens(imm_dir) -> dict:
     return st
 
 def table6(imm_dir) -> str:
-    """Predicted drug sensitivity table (exploratory)."""
+    """Predicted drug sensitivity table (exploratory), single table with cohort rows."""
     imm_dir = Path(imm_dir)
-    lines = []
+    lines = ["| Cohort | Drug | IC50 median (high) | IC50 median (low) | Wilcoxon P | FDR q | Spearman ρ | Spearman P |",
+             "|---|---|---|---|---|---|---|---|"]
     for ds in ["BRCA", "LUAD"]:
         p = imm_dir / ds / ("drug_stats_%s.csv" % ds)
         if not (p.exists() and p.stat().st_size > 1):
             continue
         d = pd.read_csv(p).sort_values("wilcox_P")
-        lines.append("**%s (n high/low: %d/%d)**" % (ds, int(d["n_high"].iloc[0]), int(d["n_low"].iloc[0])))
-        lines.append("| Drug | IC50 median (high) | IC50 median (low) | Wilcoxon P | FDR q | Spearman \u03c1 | Spearman P |")
-        lines.append("|---|---|---|---|---|---|---|")
+        lines.append("| **%s (n high/low: %d/%d)** | | | | | | | |" % (ds, int(d["n_high"].iloc[0]), int(d["n_low"].iloc[0])))
         for _, r in d.iterrows():
-            lines.append("| %s | %s | %s | %s | %s | %s | %s |" % (
-                r["drug"], fmt2(float(r["high_median_IC50"])), fmt2(float(r["low_median_IC50"])),
+            lines.append("| %s | %s | %s | %s | %s | %s | %s | %s |" % (
+                "", r["drug"], fmt2(float(r["high_median_IC50"])), fmt2(float(r["low_median_IC50"])),
                 fmt_p(float(r["wilcox_P"])), fmt_q(float(r["wilcox_q"])),
                 fmt2(float(r["spearman_rho"])), fmt_p(float(r["spearman_P"]))))
-        lines.append("")
     lines.append("_IC50 values are GDSC2/oncoPredict in-silico predictions; associations are exploratory and not FDR-significant unless stated._")
     return "\n".join(lines)
-
-
 def imv_tokens() -> dict:
     """IMvigor210 anti-PD-L1 response tokens (filled when available)."""
     st = {}
@@ -881,7 +860,7 @@ def sensitivity_tokens() -> dict:
                      % (fmt2(b[0]), fmt2(b[1])))
     im = rng("IMvigor210", "rho_risk")
     if im:
-        parts.append("the risk-score association in IMvigor210 (rho = %s-%s, all P<1e-9)"
+        parts.append("the risk-score association in IMvigor210 (rho = %s-%s, all P<0.001)"
                      % (fmt2(im[0]), fmt2(im[1])))
     lu = t[(t["dataset"] == "LUAD") & (t["definition"] == "L1")]
     if len(lu):
@@ -926,6 +905,47 @@ def table_cal() -> str:
 
 
 # ---------- main ----------
+def table_hyper() -> str:
+    """Model hyperparameters and baseline configurations."""
+    rows = [
+        ("Model", "Configuration"),
+        ("Path-AGNN-Cox", "hidden 32, layers 2, mlp 32, dropout 0.1, epochs 100, lr 1e-3, batch 128, patience 15, L2 1e-4, lambda_sparse 1e-3, lambda_consist 0.1"),
+        ("\u2212Adaptive (static)", "same backbone with fixed normalized adjacency"),
+        ("\u2212Regularization", "lambda_sparse = 0, lambda_consist = 0"),
+        ("Plain GNN", "identity adjacency, global pooling"),
+        ("LASSO-Cox", "penalizer 0.05, 10-fold internal CV"),
+        ("Ridge-Cox", "penalizer 0.1"),
+        ("Elastic-Net-Cox", "l1_ratio 0.5, penalizer 0.1"),
+        ("Random Survival Forest", "500 trees, min_samples_leaf 15"),
+        ("DeepSurv", "hidden [32, 16]"),
+        ("Cox-nnet", "hidden [64], dropout 0.0"),
+    ]
+    return "\n".join("| " + " | ".join(r) + " |" for r in rows)
+
+
+def table_sens() -> str:
+    """Sensitivity of clinical anchors to the rewiring-magnitude definition."""
+    p = ROOT / "results" / "rewiring" / "sensitivity_magnitude.csv"
+    if not p.exists():
+        return "| Cohort | Definition | rho(risk) | P(risk) | rho(Ki-67) | P(Ki-67) | n(Ki-67) | rho(TMB) | P(TMB) | n(TMB) |\n|---|---|---|---|---|---|---|---|---|---|"
+    t = pd.read_csv(p)
+    lines = ["| Cohort | Definition | rho(risk) | P(risk) | rho(Ki-67) | P(Ki-67) | n(Ki-67) | rho(TMB) | P(TMB) | n(TMB) |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
+    for ds in ("LUAD", "BRCA", "IMvigor210"):
+        sub = t[t["dataset"] == ds].sort_values("definition")
+        for _, r in sub.iterrows():
+            def f(v, nd=2):
+                try:
+                    x = float(v)
+                    return fmt2(x) if nd == 2 else fmt_p(x)
+                except (TypeError, ValueError):
+                    return "\u2014"
+            lines.append("| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
+                ds, r["definition"], f(r["rho_risk"]), f(r["P_risk"], 0), f(r["rho_ki67"]),
+                f(r["P_ki67"], 0), f(r["n_ki67"]), f(r["rho_tmb"]), f(r["P_tmb"], 0), f(r["n_tmb"])))
+    return "\n".join(lines)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--draft", action="store_true", help="allow rendering with incomplete data")
@@ -957,6 +977,8 @@ def main():
         "REWIRING": table5(ROOT / "results" / "rewiring" / "LUAD"),
         "DRUGS": table6(ROOT / "results" / "immune"),
         "CALIBRATION": table_cal(),
+        "HYPERPARAM": table_hyper(),
+        "SENSITIVITY": table_sens(),
     }
 
     mf_path = ROOT / "results" / "figures" / "figure_manifest.json"

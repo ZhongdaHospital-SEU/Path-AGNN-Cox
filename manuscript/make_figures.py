@@ -384,43 +384,22 @@ def fig_immune_drug(df=None):
         panels.append("A")
     else:
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
-    # B: BRCA drug IC50 (log2) high vs low for top-8 nominal drugs
+    # B: BRCA median predicted IC50 (log2) high vs low for top-8 nominal drugs
     ax = fig.add_axes([0.05, 0.56, 0.22, 0.34])
-    dp = imm / "BRCA" / "drug_pred_ic50_BRCA.csv"
     sp = imm / "BRCA" / "drug_stats_BRCA.csv"
-    if dp.exists() and sp.exists():
-        pred = pd.read_csv(dp, index_col=0)
+    if sp.exists():
         stats = pd.read_csv(sp).sort_values("wilcox_P").head(8)
-        mag = pd.read_csv(ROOT / "results" / "rewiring" / "BRCA" / "rewiring_magnitude.csv")
-        mag["sample_id"] = mag["sample_id"].str[:12]
-        common = [c for c in pred.columns if c in set(mag["sample_id"])]
-        pred = pred[common]
-        med = mag.set_index("sample_id").loc[common, "rewiring_magnitude"].median()
-        grp = np.where(mag.set_index("sample_id").loc[common, "rewiring_magnitude"] >= med, "High", "Low")
         x = np.arange(len(stats))
-        w = 0.38
-        hi_data, lo_data = [], []
-        for _, r in stats.iterrows():
-            base = str(r["drug"])
-            cols = [c for c in pred.index if c.startswith(base + "_")]
-            if cols:
-                vals = pred.loc[cols].mean(axis=0)
-            else:
-                vals = pred.loc[base]
-            hi_data.append(np.log2(vals[grp == "High"] + 1e-6))
-            lo_data.append(np.log2(vals[grp == "Low"] + 1e-6))
-        bp_hi = ax.boxplot(hi_data, positions=x - w / 2, widths=w * 0.9, patch_artist=True,
-                           showfliers=False, medianprops=dict(color="white"))
-        bp_lo = ax.boxplot(lo_data, positions=x + w / 2, widths=w * 0.9, patch_artist=True,
-                           showfliers=False, medianprops=dict(color="white"))
-        for b in bp_hi["boxes"]: b.set_facecolor("#C0392B"); b.set_alpha(0.8)
-        for b in bp_lo["boxes"]: b.set_facecolor("#2980B9"); b.set_alpha(0.8)
+        w = 0.36
+        hi = np.log2(stats["high_median_IC50"].to_numpy() + 1e-6)
+        lo = np.log2(stats["low_median_IC50"].to_numpy() + 1e-6)
+        ax.bar(x - w / 2, hi, width=w, color="#C0392B", alpha=0.85, label="High rewiring")
+        ax.bar(x + w / 2, lo, width=w, color="#2980B9", alpha=0.85, label="Low rewiring")
         ax.set_xticks(x)
         ax.set_xticklabels(stats["drug"], rotation=45, ha="right", fontsize=6)
-        ax.set_ylabel("log2 predicted IC50", fontsize=8)
+        ax.set_ylabel("log2 median predicted IC50", fontsize=8)
         ax.set_title("B  BRCA: top-8 drugs by nominal P", fontsize=9)
-        ax.legend([bp_hi["boxes"][0], bp_lo["boxes"][0]], ["High rewiring", "Low rewiring"],
-                  fontsize=6.5, frameon=False)
+        ax.legend(fontsize=6.5, frameon=False)
         ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
         panels.append("B")
     else:

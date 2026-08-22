@@ -30,6 +30,13 @@ def report(lineno, msg):
 
 lines = MD.read_text(encoding="utf-8").splitlines()
 text = "\n".join(lines)
+# exclude the reference list from content-format checks
+ref_i = next((i for i, ln in enumerate(lines) if ln.strip() == "## References"), None)
+if ref_i is not None:
+    body_lines = lines[:ref_i]
+    body_text = "\n".join(body_lines)
+else:
+    body_lines, body_text = lines, text
 
 # 1. unfilled tokens
 for i, ln in enumerate(lines, 1):
@@ -105,7 +112,7 @@ for bad in ("## Tables", "## Figure legends"):
 # 5. numeric formatting (arXiv ids and DOIs scrubbed first)
 for i, ln in enumerate(lines, 1):
     ln2 = re.sub(r"arXiv\s*:\s*\d+\.\d+", "arXiv:XX", ln, flags=re.I)
-    ln2 = re.sub(r"\b10\.\d{4,}/[0-9A-Za-z.\-]+", "DOI", ln2)
+    ln2 = re.sub(r"\b10\.\d{4,}/[0-9A-Za-z().\-<>:;]+", "DOI", ln2)
     ln2 = re.sub(r"doi\.org/[0-9A-Za-z./\-]+", "URL", ln2, flags=re.I)
     # 5a. numbers with >2 decimals outside P=/q= context
     for m in re.finditer(r"(?<![\w=<>])\d+\.\d{3,}\d*(?![\d])", ln2):
