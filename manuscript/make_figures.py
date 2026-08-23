@@ -72,11 +72,75 @@ def _dot_plot(ax, series_dict, xlabels):
     _style_ax(ax)
     ax.legend(fontsize=7, loc="lower left", frameon=False)
 
+
+# ---------------- panel splitting ----------------
+def _crop_svg_text(svg_text, x0, y0, w, h):
+    """Return a standalone SVG whose viewBox shows only the cropped region.
+    Content is wrapped in a translated group, so text remains editable."""
+    m = re.search(r"<svg[^>]*>", svg_text)
+    if not m:
+        return None
+    inner = svg_text[m.end(): svg_text.rfind("</svg>")]
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<svg xmlns="http://www.w3.org/2000/svg" '
+        'xmlns:xlink="http://www.w3.org/1999/xlink" '
+        'width="%.2f" height="%.2f" viewBox="%.2f %.2f %.2f %.2f">\n'
+        '<g transform="translate(%.2f %.2f)">%s</g>\n</svg>\n'
+        % (w, h, x0, y0, w, h, -x0, -y0, inner)
+    )
+
+def _save_panels(fig, stem, pairs, svg_path, png_path, only=None):
+    """Crop the composite SVG into one standalone SVG per panel.
+
+    pairs: list of (Axes, panel letter) in figure order.
+    only: optional iterable of panel letters to emit, e.g. panels with data.
+    Returns {panel letter: relative panel SVG filename}."""
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    svg_text = svg_path.read_text(encoding="utf-8")
+    vm = re.search(r'viewBox="([\d.eE+-]+) ([\d.eE+-]+) ([\d.eE+-]+) ([\d.eE+-]+)"', svg_text)
+    if not vm:
+        return {}
+    svg_w, svg_h = float(vm.group(3)), float(vm.group(4))
+    dw, dh = fig.canvas.get_width_height()
+    sx, sy = svg_w / dw, svg_h / dh
+    try:
+        from PIL import Image
+        png = Image.open(png_path) if png_path.exists() else None
+        pxs = (png.width / dw, png.height / dh) if png is not None else None
+    except Exception:
+        png = None; pxs = None
+    pad = 5.0
+    out = {}
+    for ax, lab in pairs:
+        if only is not None and lab not in only:
+            continue
+        bb = ax.get_tightbbox(renderer)
+        if bb is None:
+            continue
+        x0 = max(0.0, (bb.x0 - pad) * sx)
+        y0 = max(0.0, (bb.y0 - pad) * sy)
+        x1 = min(svg_w, (bb.x1 + pad) * sx)
+        y1 = min(svg_h, (bb.y1 + pad) * sy)
+        rel = "%s%s.svg" % (stem, lab)
+        crop = _crop_svg_text(svg_text, x0, y0, x1 - x0, y1 - y0)
+        if crop is not None:
+            (FIGDIR / rel).write_text(crop, encoding="utf-8")
+        if png is not None:
+            bx0 = int(max(0.0, (bb.x0 - pad) * pxs[0])); by0 = int(max(0.0, (bb.y0 - pad) * pxs[1]))
+            bx1 = int(min(png.width, (bb.x1 + pad) * pxs[0])); by1 = int(min(png.height, (bb.y1 + pad) * pxs[1]))
+            png.crop((bx0, by0, bx1, by1)).save(FIGDIR / ("%s%s.png" % (stem, lab)), dpi=(300, 300))
+        out[lab] = rel
+    return out
+
 # ---------------- figure generators ----------------
-def fig_method():
+def fig_method(panel_stem="Figure1"):
     fig = plt.figure(figsize=(10.5, 6.2))
+    pairs = []
     # Panel A: pipeline
     ax = fig.add_axes([0.03, 0.62, 0.94, 0.32]); ax.axis("off")
+    pairs.append((ax, "A"))
     steps = ["TCGA/GEO\nExpression\n(N \u00d7 G)", "KEGG pathway\nmapping\n(57 pathways)",
              "Pathway-block\nadjacency", "Adaptive GAT\n\u00d7 L layers",
              "Pathway readout\n+ MLP", "Cox risk\nscore", "Rewiring\nstatistics"]
@@ -94,6 +158,7 @@ def fig_method():
     ax.set_title("End-to-end pipeline", fontsize=9, pad=2, loc="left")
     # Panel B: block-diagonal adjacency
     axb = fig.add_axes([0.03, 0.06, 0.30, 0.45]); axb.axis("off")
+    pairs.append((axb, "B"))
     rng = np.random.default_rng(0)
     K = 6
     blocks = []
@@ -115,6 +180,7 @@ def fig_method():
     axb.text(-0.12, 1.02, "B", transform=axb.transAxes, fontsize=13, fontweight="bold", va="top")
     # Panel C: attention formula
     axc = fig.add_axes([0.36, 0.06, 0.30, 0.45]); axc.axis("off")
+    pairs.append((axc, "C"))
     axc.text(0.0, 0.92, "C  Sample-adaptive attention", fontsize=9, fontweight="bold")
     axc.text(0.0, 0.55, r"$\alpha_{ij}^{(l)} = \mathrm{softmax}_j\left( \mathrm{LeakyReLU}\left( \mathbf{a}^\top [\mathbf{W} h_i \| \mathbf{W} h_j] \right) \cdot (1 + \tanh(\beta)\, m_s) \right)$",
              fontsize=8.5, va="center", wrap=True)
@@ -122,6 +188,7 @@ def fig_method():
              fontsize=7.5, color="#555555", wrap=True)
     # Panel D: loss
     axd = fig.add_axes([0.69, 0.06, 0.28, 0.45]); axd.axis("off")
+    pairs.append((axd, "D"))
     axd.text(0.0, 0.92, "D  Survival objective with dual regularization", fontsize=9, fontweight="bold")
     axd.text(0.0, 0.5, r"$\mathcal{L} = -\!\!\!\sum_{i:\delta_i=1}\! \left[ \hat{y}_i - \log\!\!\sum_{j \in R(t_i)} e^{\hat{y}_j} \right] + \lambda_1 \sum_k \| \alpha_k \|_1 + \lambda_2 \cdot \mathrm{Consistency}$",
              fontsize=8.5, va="center", wrap=True)
@@ -129,11 +196,15 @@ def fig_method():
              fontsize=7.5, color="#555555", wrap=True)
     fig.savefig(FIGDIR / "Figure1_method.svg", format="svg")
     fig.savefig(FIGDIR / "Figure1_method.png", dpi=300)
+    panel_files = _save_panels(fig, panel_stem, pairs,
+                               FIGDIR / "Figure1_method.svg", FIGDIR / "Figure1_method.png",
+                               only=["A", "B", "C", "D"])
     plt.close(fig)
-    return "Figure1_method.svg", ["A", "B", "C", "D"]
+    return "Figure1_method.svg", ["A", "B", "C", "D"], panel_files
 
-def fig_benchmark(df):
+def fig_benchmark(df, panel_stem="Figure2"):
     fig, axes = plt.subplots(1, 3, figsize=(11.5, 3.2))
+    pairs = [(axes[0], "A"), (axes[1], "B"), (axes[2], "C")]
     cv = {m: mean_cv(df, m) for m in MAIN_MODELS}
     ext = {m: mean_ext(df, m) for m in MAIN_MODELS}
     auc = {m: mean_auc(df, m) for m in MAIN_MODELS}
@@ -143,11 +214,15 @@ def fig_benchmark(df):
     fig.tight_layout()
     fig.savefig(FIGDIR / "Figure2_benchmark.svg", format="svg")
     fig.savefig(FIGDIR / "Figure2_benchmark.png", dpi=300)
+    panel_files = _save_panels(fig, panel_stem, pairs,
+                               FIGDIR / "Figure2_benchmark.svg", FIGDIR / "Figure2_benchmark.png",
+                               only=["A", "B", "C"])
     plt.close(fig)
-    return "Figure2_benchmark.svg", ["A", "B", "C"]
+    return "Figure2_benchmark.svg", ["A", "B", "C"], panel_files
 
-def fig_ablation(df):
+def fig_ablation(df, panel_stem="Figure3"):
     fig, axes = plt.subplots(1, 3, figsize=(11.5, 3.2))
+    pairs = [(axes[0], "A"), (axes[1], "B"), (axes[2], "C")]
     cv = {m: mean_cv(df, m) for m in ABL_MODELS}
     ext = {m: mean_ext(df, m) for m in ABL_MODELS}
     x = np.arange(len(DATASETS))
@@ -179,11 +254,15 @@ def fig_ablation(df):
     fig.tight_layout()
     fig.savefig(FIGDIR / "Figure3_ablation.svg", format="svg")
     fig.savefig(FIGDIR / "Figure3_ablation.png", dpi=300)
+    panel_files = _save_panels(fig, panel_stem, pairs,
+                               FIGDIR / "Figure3_ablation.svg", FIGDIR / "Figure3_ablation.png",
+                               only=["A", "B", "C"])
     plt.close(fig)
-    return "Figure3_ablation.svg", ["A", "B", "C"]
+    return "Figure3_ablation.svg", ["A", "B", "C"], panel_files
 
-def fig_external(df):
+def fig_external(df, panel_stem="Figure4"):
     fig, ax = plt.subplots(figsize=(7.4, 4.6))
+    pairs = [(ax, "A")]
     ext = df[(df["split"] == "external")]
     colors = plt.cm.tab20(np.linspace(0, 1, len(DATASETS)))
     cmap = dict(zip(DATASETS, colors))
@@ -217,21 +296,26 @@ def fig_external(df):
     fig.tight_layout()
     fig.savefig(FIGDIR / "Figure4_external.svg", format="svg")
     fig.savefig(FIGDIR / "Figure4_external.png", dpi=300)
+    panel_files = _save_panels(fig, panel_stem, pairs,
+                               FIGDIR / "Figure4_external.svg", FIGDIR / "Figure4_external.png",
+                               only=["A"])
     plt.close(fig)
-    return "Figure4_external.svg", ["A"]
+    return "Figure4_external.svg", ["A"], panel_files
 
-def fig_rewiring(df=None):
+def fig_rewiring(df=None, panel_stem="Figure5"):
     """Figure 5: between-stratum effect sizes with permutation-calibrated
     significance (A/B), cohort-level label-permutation null (C), clinical
     correlation (D), matched random-set controls (E)."""
     panels = []
     fig = plt.figure(figsize=(11.5, 6.5))
+    pairs = []
     # A/B: Cohen's d forest plots (all pathways)
     for k, (ds, pos, title) in enumerate([
             ("LUAD", [0.07, 0.56, 0.44, 0.36], "A  Between-stratum effect sizes (LUAD)"),
             ("BRCA", [0.55, 0.56, 0.42, 0.36], "B  Between-stratum effect sizes (BRCA)")]):
         ef = ROOT / "results" / "rewiring" / ds / "pathway_effects.csv"
         ax = fig.add_axes(pos)
+        pairs.append((ax, "A" if k == 0 else "B"))
         if ef.exists():
             d = pd.read_csv(ef).sort_values("cohen_d")
             sig = (d["perm_q"] < 0.05).to_numpy()
@@ -255,6 +339,7 @@ def fig_rewiring(df=None):
             ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     # C: label-permutation null vs observed
     ax = fig.add_axes([0.07, 0.08, 0.28, 0.36])
+    pairs.append((ax, "C"))
     perm_files = [("LUAD", ROOT / "results" / "rewiring" / "LUAD" / "permutation_test.csv"),
                   ("BRCA", ROOT / "results" / "rewiring" / "BRCA" / "permutation_test.csv"),
                   ("KIRC", ROOT / "results" / "rewiring" / "KIRC" / "permutation_test.csv")]
@@ -291,6 +376,7 @@ def fig_rewiring(df=None):
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     # D: clinical correlation
     ax = fig.add_axes([0.40, 0.08, 0.28, 0.36])
+    pairs.append((ax, "D"))
     cc = ROOT / "results" / "rewiring" / "LUAD" / "clinical_corr.csv"
     if cc.exists() and cc.stat().st_size > 1:
         c = pd.read_csv(cc)
@@ -312,6 +398,7 @@ def fig_rewiring(df=None):
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     # E: matched random-set controls (percentiles of real pathways)
     ax = fig.add_axes([0.73, 0.08, 0.24, 0.36])
+    pairs.append((ax, "E"))
     data, positions, labels = [], [], []
     for i, ds in enumerate(["LUAD", "BRCA", "KIRC"]):
         ef = ROOT / "results" / "rewiring" / ds / "pathway_effects.csv"
@@ -345,16 +432,21 @@ def fig_rewiring(df=None):
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     fig.savefig(FIGDIR / "Figure5_rewiring.svg", format="svg")
     fig.savefig(FIGDIR / "Figure5_rewiring.png", dpi=300)
+    panel_files = _save_panels(fig, panel_stem, pairs,
+                               FIGDIR / "Figure5_rewiring.svg", FIGDIR / "Figure5_rewiring.png",
+                               only=panels)
     plt.close(fig)
-    return "Figure5_rewiring.svg", panels
+    return "Figure5_rewiring.svg", panels, panel_files
 
-def fig_immune_drug(df=None):
+def fig_immune_drug(df=None, panel_stem="Figure8"):
     """Figure: immune infiltration (A) + BRCA predicted drug sensitivity (B, C)."""
     imm = ROOT / "results" / "immune"
     panels = []
     fig = plt.figure(figsize=(11.5, 6.8))
+    pairs = []
     # A: immune features, signed -log10 P (high vs low rewiring) for LUAD & BRCA
     ax = fig.add_axes([0.30, 0.10, 0.66, 0.80])
+    pairs.append((ax, "A"))
     feats = []
     luad_rows, brca_rows = None, None
     lp = imm / "LUAD" / "immune_stats.csv"
@@ -386,6 +478,7 @@ def fig_immune_drug(df=None):
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     # B: BRCA median predicted IC50 (log2) high vs low for top-8 nominal drugs
     ax = fig.add_axes([0.05, 0.56, 0.22, 0.34])
+    pairs.append((ax, "B"))
     sp = imm / "BRCA" / "drug_stats_BRCA.csv"
     if sp.exists():
         stats = pd.read_csv(sp).sort_values("wilcox_P").head(8)
@@ -406,6 +499,7 @@ def fig_immune_drug(df=None):
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     # C: BRCA Spearman rho across 17 drugs
     ax = fig.add_axes([0.05, 0.08, 0.22, 0.36])
+    pairs.append((ax, "C"))
     if sp.exists():
         stats = pd.read_csv(sp).sort_values("spearman_P")
         stats = stats.reindex(stats["spearman_rho"].abs().sort_values(ascending=False).index)
@@ -423,16 +517,21 @@ def fig_immune_drug(df=None):
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     fig.savefig(FIGDIR / "Figure7_immunedrug.svg", format="svg")
     fig.savefig(FIGDIR / "Figure7_immunedrug.png", dpi=300)
+    panel_files = _save_panels(fig, panel_stem, pairs,
+                               FIGDIR / "Figure7_immunedrug.svg", FIGDIR / "Figure7_immunedrug.png",
+                               only=panels)
     plt.close(fig)
-    return "Figure7_immunedrug.svg", panels
+    return "Figure7_immunedrug.svg", panels, panel_files
 
-def fig_imvigor(df=None):
+def fig_imvigor(df=None, panel_stem="Figure6"):
     """Figure: IMvigor210 anti-PD-L1 cohort (exploratory; panels A-C)."""
     rdir = ROOT / "results" / "rewiring" / "IMvigor210"
     panels = []
     fig = plt.figure(figsize=(12.0, 3.9))
+    pairs = []
     # A: rewiring magnitude responders (CR/PR) vs non-responders (SD/PD)
     ax = fig.add_axes([0.06, 0.16, 0.27, 0.72])
+    pairs.append((ax, "A"))
     has_a = False
     if (rdir / "alpha.npy").exists() and (rdir / "risk_scores.csv").exists():
         alpha = np.load(rdir / "alpha.npy")
@@ -465,6 +564,7 @@ def fig_imvigor(df=None):
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     # B: OS by high vs low rewiring (median split)
     ax = fig.add_axes([0.42, 0.16, 0.27, 0.72])
+    pairs.append((ax, "B"))
     has_b = False
     if has_a:
         from lifelines import KaplanMeierFitter
@@ -491,6 +591,7 @@ def fig_imvigor(df=None):
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     # C: Ki-67 expression vs rewiring magnitude
     ax = fig.add_axes([0.78, 0.16, 0.20, 0.72])
+    pairs.append((ax, "C"))
     has_c = False
     trp = ROOT / "data" / "processed" / "IMvigor210" / "train.csv"
     if has_a and trp.exists():
@@ -509,8 +610,11 @@ def fig_imvigor(df=None):
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     fig.savefig(FIGDIR / "Figure6_imvigor.svg", format="svg")
     fig.savefig(FIGDIR / "Figure6_imvigor.png", dpi=300)
+    panel_files = _save_panels(fig, panel_stem, pairs,
+                               FIGDIR / "Figure6_imvigor.svg", FIGDIR / "Figure6_imvigor.png",
+                               only=panels)
     plt.close(fig)
-    return "Figure6_imvigor.svg", panels
+    return "Figure6_imvigor.svg", panels, panel_files
 
 
 def _feat_label_plot(f):
@@ -520,7 +624,7 @@ def _feat_label_plot(f):
     return f
 
 
-def fig_dca(df=None):
+def fig_dca(df=None, panel_stem="Figure7"):
     """Figure: IPCW decision-curve analysis at 3 years (panels A-C)."""
     dca = pd.read_csv(ROOT / "results" / "rewiring" / "dca_results.csv")
     d3 = dca[dca["horizon"] == "3y"]
@@ -532,9 +636,11 @@ def fig_dca(df=None):
         "treat_all": dict(color="#555555", ls=":", lw=1.2, label="Treat all"),
     }
     fig = plt.figure(figsize=(11.4, 3.4))
+    pairs = []
     panels = []
     for i, co in enumerate(cohorts):
         ax = fig.add_axes([0.065 + 0.315 * i, 0.17, 0.27, 0.72])
+        pairs.append((ax, chr(65 + i)))
         for model, st in styles.items():
             sub = d3[(d3["dataset"] == co) & (d3["model"] == model)].sort_values("threshold")
             if model == "treat_all":
@@ -552,8 +658,11 @@ def fig_dca(df=None):
                bbox_to_anchor=(0.5, -0.02))
     fig.savefig(FIGDIR / "FigureDCA_dca.svg", format="svg")
     fig.savefig(FIGDIR / "FigureDCA_dca.png", dpi=300)
+    panel_files = _save_panels(fig, panel_stem, pairs,
+                               FIGDIR / "FigureDCA_dca.svg", FIGDIR / "FigureDCA_dca.png",
+                               only=panels)
     plt.close(fig)
-    return "FigureDCA_dca.svg", panels
+    return "FigureDCA_dca.svg", panels, panel_files
 
 
 GENERATORS = {
@@ -573,9 +682,12 @@ def main():
     manifest = {}
     for i, name in enumerate(order, start=1):
         if name in GENERATORS:
-            fname, panels = GENERATORS[name](df) if name != "METHOD" else GENERATORS[name]()
-            manifest[f"Figure{i}"] = {"token": name, "file": fname, "panels": panels}
-            print(f"Figure {i}: {name} -> {fname} ({', '.join(panels)})")
+            fname, panels, panel_files = (GENERATORS[name](df, f"Figure{i}")
+                                           if name != "METHOD" else GENERATORS[name](f"Figure{i}"))
+            manifest[f"Figure{i}"] = {"token": name, "file": fname, "panels": panels,
+                                      "panel_files": panel_files}
+            print(f"Figure {i}: {name} -> {fname} ({', '.join(panels)}) "
+                  f"panels: {', '.join(sorted(panel_files))}")
         else:
             print(f"WARNING: no generator for figure token '{name}' (Figure {i})")
     (FIGDIR / "figure_manifest.json").write_text(

@@ -1,7 +1,6 @@
-<?xml version="1.0" encoding="utf-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
-  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="828pt" height="489.6pt" viewBox="0 0 828 489.6" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="692.89" height="440.36" viewBox="105.59 17.08 692.89 440.36">
+<g transform="translate(-105.59 -17.08)">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -1183,4 +1182,5 @@ L 223.56 450.432
    <rect x="41.4" y="274.176" width="182.16" height="176.256"/>
   </clipPath>
  </defs>
+</g>
 </svg>

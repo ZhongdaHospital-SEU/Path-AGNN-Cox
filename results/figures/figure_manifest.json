@@ -7,7 +7,13 @@
    "B",
    "C",
    "D"
-  ]
+  ],
+  "panel_files": {
+   "A": "Figure1A.svg",
+   "B": "Figure1B.svg",
+   "C": "Figure1C.svg",
+   "D": "Figure1D.svg"
+  }
  },
  "Figure2": {
   "token": "BENCHMARK",
@@ -16,7 +22,12 @@
    "A",
    "B",
    "C"
-  ]
+  ],
+  "panel_files": {
+   "A": "Figure2A.svg",
+   "B": "Figure2B.svg",
+   "C": "Figure2C.svg"
+  }
  },
  "Figure3": {
   "token": "ABLATION",
@@ -25,14 +36,22 @@
    "A",
    "B",
    "C"
-  ]
+  ],
+  "panel_files": {
+   "A": "Figure3A.svg",
+   "B": "Figure3B.svg",
+   "C": "Figure3C.svg"
+  }
  },
  "Figure4": {
   "token": "EXTERNAL",
   "file": "Figure4_external.svg",
   "panels": [
    "A"
-  ]
+  ],
+  "panel_files": {
+   "A": "Figure4A.svg"
+  }
  },
  "Figure5": {
   "token": "REWIRING",
@@ -43,7 +62,14 @@
    "C",
    "D",
    "E"
-  ]
+  ],
+  "panel_files": {
+   "A": "Figure5A.svg",
+   "B": "Figure5B.svg",
+   "C": "Figure5C.svg",
+   "D": "Figure5D.svg",
+   "E": "Figure5E.svg"
+  }
  },
  "Figure6": {
   "token": "IMV",
@@ -52,7 +78,12 @@
    "A",
    "B",
    "C"
-  ]
+  ],
+  "panel_files": {
+   "A": "Figure6A.svg",
+   "B": "Figure6B.svg",
+   "C": "Figure6C.svg"
+  }
  },
  "Figure7": {
   "token": "DCA",
@@ -61,7 +92,12 @@
    "A",
    "B",
    "C"
-  ]
+  ],
+  "panel_files": {
+   "A": "Figure7A.svg",
+   "B": "Figure7B.svg",
+   "C": "Figure7C.svg"
+  }
  },
  "Figure8": {
   "token": "IMMUNEDRUG",
@@ -70,6 +106,11 @@
    "A",
    "B",
    "C"
-  ]
+  ],
+  "panel_files": {
+   "A": "Figure8A.svg",
+   "B": "Figure8B.svg",
+   "C": "Figure8C.svg"
+  }
  }
 }
