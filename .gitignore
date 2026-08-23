@@ -70,3 +70,6 @@ results/icb/*_meta.csv
 
 # Per-patient derived scores (privacy)
 results/icb/*_delta.csv
+
+# user manuscript copies
+0823*.docx
