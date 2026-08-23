@@ -8,6 +8,7 @@ Output: manuscript/Path-AGNN-Cox_manuscript.docx
 - markdown tables -> Table Grid
 - bullet lines -> List Bullet
 - **bold** and *italic* inline formatting
+- $$ latex $$ lines -> Word native equations (OMML) via latex2mathml + MML2OMML.XSL
 - figure PNGs inserted (centered) above their legend lines in the
   'Figure legends' section, using results/figures/figure_manifest.json
 """
@@ -76,6 +77,19 @@ def parse_table(block):
 
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
+
+import latex2mathml.converter
+from lxml import etree
+
+_MML2OMML = Path(r"C:\Program Files (x86)\Microsoft Office\Office12\MML2OMML.XSL")
+_equation_xslt = etree.XSLT(etree.parse(str(_MML2OMML))) if _MML2OMML.exists() else None
+
+
+def _latex_to_omml(latex):
+    """Convert a LaTeX fragment to a Word native equation (m:oMath) element."""
+    mml = latex2mathml.converter.convert(latex)
+    root = etree.fromstring(mml.encode("utf-8"))
+    return _equation_xslt(root).getroot()
 
 
 def _border(el, tag, sz):
@@ -177,6 +191,18 @@ def main():
                 r.bold = True
             par.paragraph_format.space_before = Pt(6)
             par.paragraph_format.space_after = Pt(3)
+            i += 1
+            continue
+        # native equations: $$ latex $$ -> Word OMML equation
+        m_eq = re.match(r"^\$\$(.+)\$\$\s*$", s)
+        if m_eq:
+            par = doc.add_paragraph()
+            par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            try:
+                par._p.append(_latex_to_omml(m_eq.group(1).strip()))
+            except Exception:
+                r = par.add_run(m_eq.group(1).strip())
+                r.italic = True
             i += 1
             continue
         # inline figure image line -> centered PNG (SVG is the editable source)

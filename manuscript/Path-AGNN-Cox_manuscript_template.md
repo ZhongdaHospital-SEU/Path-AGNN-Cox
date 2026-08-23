@@ -79,7 +79,7 @@ Path-AGNN-Cox follows a pathway-first pipeline ({{FREF:METHOD|A}}). Transcriptom
 
 The central design choice of Path-AGNN-Cox is to replace a single global gene graph with biologically curated pathway modules—an explicit inductive bias for survival modeling in the *p*≫*n* regime rather than a visualization convenience. Let *U* = {*g*₁, …, *g*_{M}} denote the aligned gene universe (pathway-mapped genes present in the expression matrix), and let *P* = {1, …, *K*} denote the pathway catalogue. Each gene is assigned to its **primary pathway module** (the pathway in which its membership is most specific; ties broken by pathway size), giving a partition *U* = ⋃ₖ *Vₖ* with *Vₖ* ∩ *Vₗ* = ∅ for *k* ≠ *l*. The pathway-constrained adjacency matrix *A* ∈ {0,1}^{M×M} is then block-diagonal:
 
-A_{ij} = 1 iff ∃ k: g_i ∈ V_k and g_j ∈ V_k;  A_{ij} = 0 otherwise,
+$$ A_{ij} = 1 \ \mathrm{iff}\ \exists\, k: g_i \in V_k \ \mathrm{and}\ g_j \in V_k; \quad A_{ij} = 0 \ \mathrm{otherwise}, $$
 
 so that message passing is confined to gene pairs that are biologically co-regulated. Self-loops are included so that isolated nodes retain their features. In the current implementation the adjacency is built once from the KEGG cancer-core GMT and held fixed as the *structural* mask; what is learned per patient is the *edge weight* (Section 2.4).
 
@@ -87,38 +87,52 @@ so that message passing is confined to gene pairs that are biologically co-regul
 
 Within each pathway block, Path-AGNN-Cox applies *L* adaptive graph-attention layers. For layer *l*, the attention logit of edge (*i, j*) for patient *s* is
 
-e_{ij}^{(l,s)} = LeakyReLU( a^T [ W h_i^{(l,s)} ∥ W h_j^{(l,s)} ] ) · (1 + tanh(β^{(l)}) · m_s ),
+$$ e_{ij}^{(l,s)} = \mathrm{LeakyReLU}\!\left( a^T [ W h_i^{(l,s)} \parallel W h_j^{(l,s)} ] \right) \cdot \left( 1 + \tanh(\beta^{(l)}) \cdot m_s \right), $$
 
 where *h* is the node representation, *W* and *a* are learnable attention parameters, β^{(l)} is a learnable scalar gate, and *m_s* ∈ (0,1) is a per-sample malignancy score computed from the patient's pathway-level expression profile,
 
-m_s = σ( MLP_m ( (1/M) Σ_i x_{i,s} ) ),
+$$ m_s = \sigma\!\left( \mathrm{MLP}_m\!\left( \tfrac{1}{M} \sum_i x_{i,s} \right) \right), $$
 
 with σ the logistic function. The attention coefficient is the row-softmax of the masked logits within each pathway block:
 
-α_{ij}^{(l,s)} = exp(e_{ij}^{(l,s)}) / Σ_{k ∈ N_k(i)} exp(e_{ik}^{(l,s)}),
+$$ \alpha_{ij}^{(l,s)} = \frac{ \exp(e_{ij}^{(l,s)}) }{ \sum_{k \in \mathcal{N}_k(i)} \exp(e_{ik}^{(l,s)}) }, $$
 
-and the updated node representation is h_i^{(l+1,s)} = Σ_j α_{ij}^{(l,s)} W h_j^{(l,s)} (with residual connection and dropout).
+and the updated node representation is
+$$ h_i^{(l+1,s)} = \sum_j \alpha_{ij}^{(l,s)} W h_j^{(l,s)} $$
+with residual connection and dropout.
 
 Two design points deserve emphasis. First, **the multiplicative gate (1 + tanh(β)·m_s) is essential**: an additive malignancy term β·m_s inside the softmax would be a per-sample constant shift and would cancel exactly, leaving the adaptive module with no effect on the learned graph. The multiplicative form acts as a patient-specific attention temperature: for β > 0, aggressive tumors (m_s → 1) receive sharper within-pathway attention concentrated on dominant interactions, whereas β < 0 flattens attention toward uniform pooling. Second, because the node features themselves are patient-specific, the attention coefficients—and hence the effective pathway graph—are recomputed per patient even before the malignancy gate acts; the gate additionally ties the sharpness of the graph to the sample's overall malignancy state.
 
 ### 2.5. Pathway readout and risk head
 
-After *L* adaptive layers, node embeddings are summarized by mean pooling within each pathway block, *p*ₖ = (1/|Vₖ|) Σ_{i∈Vₖ} h_i^{(L)}, and the pathway-level representation is the average over blocks, g_path = (1/K) Σₖ pₖ. A gene-level summary g_gene = (1/M) Σᵢ h_i^{(L)} is concatenated with g_path, and the patient risk score is produced by a two-layer MLP:
+After *L* adaptive layers, node embeddings are summarized by mean pooling within each pathway block,
+$$ p_k = \frac{1}{|V_k|} \sum_{i \in V_k} h_i^{(L)}, $$
+and the pathway-level representation is the average over blocks,
+$$ g_{\mathrm{path}} = \frac{1}{K} \sum_k p_k. $$
+A gene-level summary
+$$ g_{\mathrm{gene}} = \frac{1}{M} \sum_i h_i^{(L)} $$
+is concatenated with g_path, and the patient risk score is produced by a two-layer MLP:
 
-ŷ_s = MLP( [g_gene; g_path] ).
+$$ \hat{y}_s = \mathrm{MLP}\!\left( [g_{\mathrm{gene}};\, g_{\mathrm{path}}] \right). $$
 
 ### 2.6. Survival objective and dual regularization
 
 Model parameters are optimized by the negative Cox partial likelihood with Breslow tie handling [1,28],
 
-L_Cox = − (1/n_events) Σ_{i: E_i=1} ( ŷ_i − log Σ_{j ∈ R(t_i)} exp(ŷ_j) ),
+$$ L_{\mathrm{Cox}} = -\frac{1}{n_{\mathrm{events}}} \sum_{i:\, E_i=1} \left( \hat{y}_i - \log \sum_{j \in R(t_i)} \exp(\hat{y}_j) \right), $$
 
 where E_i is the event indicator and R(t_i) the risk set at time t_i. To suppress overfitting in high-heterogeneity cohorts, we add two regularization terms:
 
-1. **Intra-pathway sparsity**—the mean absolute adaptive attention weight over pathway edges, L_sparse = (1/|E|) Σ_e |α_e|, penalized by λ_sparse. This encourages the model to concentrate pathway signal on a few driver interactions rather than diffuse attention across all co-regulated genes. (Attention tensors used for this penalty are kept non-detached so gradients reach the attention parameters.)
-2. **Dropout-consistency**—the mean squared error between two stochastic forward passes (two dropout views), L_consist = MSE(ŷ, ŷ′), penalized by λ_consist. This requires the risk score to be stable under feature-dropout perturbations, regularizing the sample-specific graph toward reproducible, cohort-level structure.
+1. **Intra-pathway sparsity**—the mean absolute adaptive attention weight over pathway edges,
+$$ L_{\mathrm{sparse}} = \frac{1}{|E|} \sum_e |\alpha_e|, $$
+penalized by λ_sparse. This encourages the model to concentrate pathway signal on a few driver interactions rather than diffuse attention across all co-regulated genes. (Attention tensors used for this penalty are kept non-detached so gradients reach the attention parameters.)
+2. **Dropout-consistency**—the mean squared error between two stochastic forward passes (two dropout views),
+$$ L_{\mathrm{consist}} = \mathrm{MSE}(\hat{y}, \hat{y}'), $$
+penalized by λ_consist. This requires the risk score to be stable under feature-dropout perturbations, regularizing the sample-specific graph toward reproducible, cohort-level structure.
 
-The total objective is L = L_Cox + λ₂‖W‖₂² + λ_sparse·L_sparse + λ_consist·L_consist. The objective is invariant to a joint sign flip of the first-layer attention weights and the risk-mapping weights, because the risk score, and therefore the partial likelihood and both regularizers, are unchanged under this transformation. The direction of per-pathway attention changes is consequently defined only up to this symmetry, and all rewiring tests in Section 3.4 are formulated on effect sizes that are invariant to it.
+The total objective is
+$$ L = L_{\mathrm{Cox}} + \lambda_2 \|W\|_2^2 + \lambda_{\mathrm{sparse}} \cdot L_{\mathrm{sparse}} + \lambda_{\mathrm{consist}} \cdot L_{\mathrm{consist}}. $$
+The objective is invariant to a joint sign flip of the first-layer attention weights and the risk-mapping weights, because the risk score, and therefore the partial likelihood and both regularizers, are unchanged under this transformation. The direction of per-pathway attention changes is consequently defined only up to this symmetry, and all rewiring tests in Section 3.4 are formulated on effect sizes that are invariant to it.
 
 ### 2.7. Evaluation protocol
 
