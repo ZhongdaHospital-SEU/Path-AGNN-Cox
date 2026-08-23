@@ -332,6 +332,8 @@ def compute_stats(df, info) -> dict:
 
     st["CV_FULL_MEAN"] = fmt2(np.nanmean([cv_full.get(d, np.nan) for d in DATASETS]))
     st["CV_FULL_SD"] = fmt2(np.nanstd([cv_full.get(d, np.nan) for d in DATASETS]))
+    for d, key in [("LUAD", "CV_LUAD"), ("BRCA", "CV_BRCA"), ("KIRC", "CV_KIRC")]:
+        st[key] = fmt2(cv_full.get(d, np.nan))
     bmean = {m: np.nanmean([cv_base[m].get(d, np.nan) for d in DATASETS]) for m in base_names}
     best_b = max(bmean, key=bmean.get)
     st["CV_BEST_BASELINE_MEAN"] = fmt2(bmean[best_b])
@@ -341,6 +343,13 @@ def compute_stats(df, info) -> dict:
     deep_names = ["deepsurv", "cox_nnet"]
     dmean = {m: np.nanmean([cv_base[m].get(d, np.nan) for d in DATASETS]) for m in deep_names}
     st["CV_BEST_DEEP_MEAN"] = fmt2(max(dmean.values())) if dmean else "\u2014"
+    deep_comp = []
+    for m in ["deepsurv", "cox_nnet", "rsf"]:
+        dm = np.nanmean([cv_full.get(x, np.nan) - cv_base[m].get(x, np.nan) for x in DATASETS])
+        dp = p_wilcoxon([cv_full.get(x, np.nan) for x in DATASETS],
+                        [cv_base[m].get(x, np.nan) for x in DATASETS])
+        deep_comp.append("Δ=%s vs. %s (Wilcoxon %s)" % (fmt2(dm), LABELS[m], fmt_p(dp)))
+    st["CV_DEEP_COMPARISON"] = "; ".join(deep_comp)
 
     wins_i = sum(1 for d in DATASETS if cv_full.get(d, np.nan) > max(cv_base[m].get(d, np.nan) for m in base_names))
     wins_e = sum(1 for d in DATASETS if ext_full.get(d, np.nan) > max(ext_base[m].get(d, np.nan) for m in base_names))
