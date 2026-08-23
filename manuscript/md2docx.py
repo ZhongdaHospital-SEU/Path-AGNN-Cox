@@ -167,11 +167,16 @@ def main():
             else:
                 i += 1
             continue
-        # headings
+        # headings: plain bold only, no Heading styles or other formatting
         m = re.match(r"^(#{1,3})\s+(.*)$", s)
         if m:
             lvl = len(m.group(1))
-            doc.add_heading(m.group(2), level=lvl)
+            par = doc.add_paragraph()
+            add_runs(par, m.group(2))
+            for r in par.runs:
+                r.bold = True
+            par.paragraph_format.space_before = Pt(6)
+            par.paragraph_format.space_after = Pt(3)
             i += 1
             continue
         # inline figure image line -> centered PNG (SVG is the editable source)
