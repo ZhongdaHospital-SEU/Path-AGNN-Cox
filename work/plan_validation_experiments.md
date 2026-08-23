@@ -186,4 +186,29 @@
 
 ### 结论
 - GSE225066 为阴性敏感性队列（新辅助 + 病理响应终点 + PARP 抑制剂联合，与 RECIST 转移性队列不可直接类比）；已如实写入手稿 3.4.3 与 cover letter。
-- GSE298296（新辅助 pembrolizumab，102 CEL，HuEx-1_0-st-v2）因 GEO 无响应注释（需付费论文补充表）且需 Affymetrix 外显子芯片处理，暂缓。
+- GSE298296（新辅助 pembrolizumab，102 CEL，HuEx-1_0-st-v2）已完整尝试（RMA 管线跑通、性别校验通过），因响应标签映射无法证实而放弃并入正文，详见下节。
+
+
+---
+
+## 方案 B 补充：GSE298296（PURE-01）完整尝试与放弃（2026-08-23）
+
+### 目的
+新增 BLCA 免疫治疗队列（新辅助 pembrolizumab，102 例 CEL，HuEx-1_0-st-v2），将 BLCA 模板验证从 3 个队列扩展为 4 个。
+
+### 已完成且验证通过的管线
+- 102 个 CEL 解压；安装 oligo 与 pd.huex.1.0.st.v2；extended RMA 归一化得到 133672 探针 × 102 样本，经 gdx 探针组映射折叠为基因级矩阵，输出 results/icb/gse298296_expr_gene.csv（35626 基因 × 102 样本）。
+- 性别校验决定性通过：用 XIST（meta cluster 4012566）推断性别，与 GSM Sex 元数据 15/15 完全吻合，证明 CEL 与 GSM 对齐且表达管线正确。
+- 探索性 stage 关联（cT3-4 对 cT2）：g=-0.397，P=0.060，方向与预期相反且不显著，且非 ICB 响应终点，不写入正文。
+
+### 失败点与放弃原因
+- Robertson Nat Commun 2023 补充数据 1（82 例，含 response、PDL1、GENDER、RELAPSE，ID 取值 1-102）与 GSE 样本编号的对应关系无法证实。
+- GENDER 列两种编码假设均不能确证映射：1=female 时 64/82 吻合，1=male 时仅 18/82，均不足以确认行序对应关系。
+- 穷尽替代验证后仍无可靠锚点：GSM 元数据无响应字段；CCR 论文（Tateo 2025）逐例表位于 AACR 付费墙后；EGA（EGAS00001005549）为受控访问；CEL 头不含患者标识。
+- 响应标签无法可靠挂到芯片样本，ICB 响应关联分析不可信，故不并入正文。
+
+### 结论与建议
+- 现有 BLCA 证据链保持不变：IMvigor210 g=0.305、P=0.019；GSE176307 方向一致、P=0.588；GSE225066 阴性、P=1.000；三队列 meta g=0.27、95% CI 0.03-0.51、P=0.025、I2=0%。
+- 表达矩阵 results/icb/gse298296_expr_gene.csv 保留本地（.gitignore 已覆盖，不入库），若未来获得可靠的患者编号映射可复用。
+- 解压的 CEL 目录已清理，原始 GSE298296_RAW.tar 保留供复现。
+- 如需继续扩展 BLCA，可考虑 Bajorin 2021 JAVELIN 队列，或先确认 GSE233775 的实验设计是否含逐例响应表。
