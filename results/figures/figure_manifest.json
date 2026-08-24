@@ -77,12 +77,14 @@
   "panels": [
    "A",
    "B",
-   "C"
+   "C",
+   "D"
   ],
   "panel_files": {
    "A": "Figure6A.svg",
    "B": "Figure6B.svg",
-   "C": "Figure6C.svg"
+   "C": "Figure6C.svg",
+   "D": "Figure6D.svg"
   }
  },
  "Figure7": {

@@ -524,13 +524,13 @@ def fig_immune_drug(df=None, panel_stem="Figure8"):
     return "Figure7_immunedrug.svg", panels, panel_files
 
 def fig_imvigor(df=None, panel_stem="Figure6"):
-    """Figure: IMvigor210 anti-PD-L1 cohort (exploratory; panels A-C)."""
+    """Figure: IMvigor210 anti-PD-L1 cohort (exploratory) + template transfer (panels A-D)."""
     rdir = ROOT / "results" / "rewiring" / "IMvigor210"
     panels = []
-    fig = plt.figure(figsize=(12.0, 3.9))
+    fig = plt.figure(figsize=(15.5, 3.9))
     pairs = []
     # A: rewiring magnitude responders (CR/PR) vs non-responders (SD/PD)
-    ax = fig.add_axes([0.06, 0.16, 0.27, 0.72])
+    ax = fig.add_axes([0.05, 0.16, 0.20, 0.72])
     pairs.append((ax, "A"))
     has_a = False
     if (rdir / "alpha.npy").exists() and (rdir / "risk_scores.csv").exists():
@@ -563,7 +563,7 @@ def fig_imvigor(df=None, panel_stem="Figure6"):
     if not has_a:
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     # B: OS by high vs low rewiring (median split)
-    ax = fig.add_axes([0.42, 0.16, 0.27, 0.72])
+    ax = fig.add_axes([0.28, 0.16, 0.20, 0.72])
     pairs.append((ax, "B"))
     has_b = False
     if has_a:
@@ -590,7 +590,7 @@ def fig_imvigor(df=None, panel_stem="Figure6"):
     if not has_b:
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     # C: Ki-67 expression vs rewiring magnitude
-    ax = fig.add_axes([0.78, 0.16, 0.20, 0.72])
+    ax = fig.add_axes([0.51, 0.16, 0.17, 0.72])
     pairs.append((ax, "C"))
     has_c = False
     trp = ROOT / "data" / "processed" / "IMvigor210" / "train.csv"
@@ -607,6 +607,62 @@ def fig_imvigor(df=None, panel_stem="Figure6"):
         ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
         panels.append("C"); has_c = True
     if not has_c:
+        ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
+    # D: template-transfer OS validation forest plot (BRCA/KIRC/LUAD GEO cohorts)
+    ax = fig.add_axes([0.71, 0.16, 0.26, 0.72])
+    pairs.append((ax, "D"))
+    te = ROOT / "results" / "template_external" / "template_external_os.csv"
+    tm = ROOT / "results" / "template_external" / "template_external_meta.csv"
+    has_d = False
+    if te.exists() and tm.exists():
+        osd = pd.read_csv(te)
+        meta = pd.read_csv(tm).set_index("dataset")
+        ds_colors = {"BRCA": "#2980B9", "KIRC": "#16A085", "LUAD": "#C0392B"}
+        rows, labs = [], []
+        for ds in ["BRCA", "KIRC", "LUAD"]:
+            subd = osd[osd["dataset"] == ds]
+            if not len(subd):
+                continue
+            for r in subd.itertuples():
+                rows.append((float(r.hr_high_vs_low), float(r.hr_lo), float(r.hr_hi), ds_colors[ds], False))
+                labs.append((r.cohort, ds))
+            m = meta.loc[ds]
+            rows.append((float(m["hr_fe"]), float(m["hr_lo_fe"]), float(m["hr_hi_fe"]), ds_colors[ds], True))
+            labs.append(("Fixed effect", ds))
+        yv = np.arange(len(rows))[::-1]
+        for (hr, lo, hi, col, is_fe), yy in zip(rows, yv):
+            if is_fe:
+                ax.plot([lo, hi], [yy, yy], color=col, lw=1.8, zorder=2)
+                ax.scatter([hr], [yy], marker="D", s=30, color=col, zorder=3,
+                           edgecolor="white", linewidths=0.4)
+            else:
+                ax.plot([lo, hi], [yy, yy], color="#95A5A6", lw=1.2, zorder=1)
+                ax.scatter([hr], [yy], s=24, color=col, zorder=3,
+                           edgecolor="white", linewidths=0.4)
+        # cancer-type separators
+        ymax = len(rows)
+        for yy in (ymax - 4.5, ymax - 6.5):
+            ax.axhline(yy, color="#D5D8DC", lw=0.8, zorder=0)
+        ax.axvline(1.0, color="grey", lw=0.8, ls="--", zorder=0)
+        ax.set_xscale("log")
+        ax.set_xlim(0.35, 4.6)
+        ax.set_xticks([0.5, 0.75, 1.0, 1.5, 2.0, 3.0])
+        ax.set_xticklabels(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0"], fontsize=6.5)
+        ax.set_yticks(yv)
+        ax.set_yticklabels([l[0] for l in labs], fontsize=6)
+        for tk, (_, ds) in zip(ax.get_yticklabels(), labs):
+            tk.set_color(ds_colors[ds])
+        ax.set_xlabel("HR (high vs. low template score)", fontsize=8)
+        ax.set_title("D  Template transfer: OS association", fontsize=9)
+        ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
+        from matplotlib.lines import Line2D
+        ax.legend(handles=[Line2D([], [], marker="o", ls="", color="#2980B9", ms=5,
+                                  label="Cohort HR"),
+                           Line2D([], [], marker="D", ls="", color="#2980B9", ms=5,
+                                  label="Fixed effect")],
+                  fontsize=6, frameon=False, loc="lower right")
+        panels.append("D"); has_d = True
+    if not has_d:
         ax.text(0.5, 0.5, "pending", ha="center", va="center"); ax.axis("off")
     fig.savefig(FIGDIR / "Figure6_imvigor.svg", format="svg")
     fig.savefig(FIGDIR / "Figure6_imvigor.png", dpi=300)
