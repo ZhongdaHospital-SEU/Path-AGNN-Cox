@@ -772,6 +772,41 @@ def ext_rw_tokens() -> dict:
 
 
 
+def template_ext_tokens() -> dict:
+    """Template-transfer OS validation tokens (results/template_external)."""
+    st = {}
+    os_csv = ROOT / "results" / "template_external" / "template_external_os.csv"
+    meta_csv = ROOT / "results" / "template_external" / "template_external_meta.csv"
+    if not (os_csv.exists() and meta_csv.exists()):
+        for k in ("BRCA", "KIRC", "LUAD"):
+            st["TEMPLATE_EXT_%s_SENT" % k] = ""
+        return st
+    osd = pd.read_csv(os_csv)
+    meta = pd.read_csv(meta_csv).set_index("dataset")
+    def sent(ds, label):
+        sub = osd[osd["dataset"] == ds]
+        if not len(sub):
+            return ""
+        m = meta.loc[ds]
+        parts = []
+        for r in sub.itertuples():
+            parts.append("%s (HR %s, 95%% CI %s\u2013%s, %s; n=%d)"
+                         % (r.cohort, fmt2(float(r.hr_high_vs_low)),
+                            fmt2(float(r.hr_lo)), fmt2(float(r.hr_hi)),
+                            fmt_p(float(r.p_median)), int(r.n)))
+        if ds == "LUAD":
+            return ("The LUAD template score was associated with OS in one of three cohorts "
+                    "(%s), with a weighted meta z of %s (%s) across cohorts; "
+                    % ("; ".join(parts), fmt2(float(m["z_w"])), fmt_p(float(m["p_w"]))))
+        return ("The %s template score was not associated with OS in any evaluable GEO cohort "
+                "(%s; fixed-effect HR %s, %s) "
+                % (label, "; ".join(parts), fmt2(float(m["hr_fe"])), fmt_p(float(m["p_hr"]))))
+    st["TEMPLATE_EXT_BRCA_SENT"] = sent("BRCA", "BRCA")
+    st["TEMPLATE_EXT_KIRC_SENT"] = sent("KIRC", "KIRC")
+    st["TEMPLATE_EXT_LUAD_SENT"] = sent("LUAD", "LUAD")
+    return st
+
+
 def ext_pathway_meta_tokens() -> dict:
     """P1-1: pathway-level rewiring meta-analysis across external LUAD cohorts."""
     st = {}
@@ -971,6 +1006,7 @@ def main():
     st.update(imv_tokens())
     st.update(stdgat_tokens())
     st.update(ext_rw_tokens())
+    st.update(template_ext_tokens())
     st.update(sensitivity_tokens())
     st.update(addendum_tokens())
     st.update(kirc_clinical_tokens())
