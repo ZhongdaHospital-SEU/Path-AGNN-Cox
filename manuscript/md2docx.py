@@ -77,7 +77,23 @@ def _add_citation_group(par, bracketed_numbers):
     return True
 
 
+CODE = re.compile(r"`([^`\n]+?)`")
+
 def add_runs(par, text, base_bold=False):
+    """Add text, using monospace for inline code spans, then **bold** and *italic*."""
+    pos = 0
+    for m in CODE.finditer(text):
+        if m.start() > pos:
+            add_runs_md(par, text[pos:m.start()], base_bold)
+        r = par.add_run(m.group(1))
+        r.font.name = "Consolas"
+        r.font.size = Pt(9.5)
+        r.bold = base_bold
+        pos = m.end()
+    if pos < len(text):
+        add_runs_md(par, text[pos:], base_bold)
+
+def add_runs_md(par, text, base_bold=False):
     """Add text to paragraph, honoring **bold** and *italic* markers."""
     pos = 0
     for m in BOLD.finditer(text):
@@ -285,7 +301,16 @@ def main():
             num = int(mf.group(1))
             par = doc.add_paragraph()
             r = par.add_run("Figure %d%s. " % (num, mf.group(2))); r.bold = True
-            add_runs(par, mf.group(3))
+            rest = mf.group(3)
+            idx = rest.find('**')
+            if idx != -1:
+                lead = rest[:idx].rstrip()
+                tail = rest[idx + 2:].strip()
+                if lead:
+                    r2 = par.add_run(lead); r2.bold = True
+                add_runs(par, (' ' + tail) if tail else '')
+            else:
+                add_runs(par, rest)
             par.paragraph_format.space_after = Pt(10)
             i += 1
             continue
@@ -299,8 +324,8 @@ def main():
         if s == '## References':
             in_references = True
         reference_match = REFERENCE_LINE.match(s) if in_references else None
-        par = doc.add_paragraph()
         if reference_match:
+            par = doc.add_paragraph()
             number_run = par.add_run(reference_match.group(1))
             start = OxmlElement('w:bookmarkStart')
             start.set(qn('w:id'), str(bookmark_id))
@@ -312,9 +337,31 @@ def main():
             bookmark_id += 1
             par.add_run('. ')
             add_runs(par, reference_match.group(2))
-        else:
-            add_runs(par, s)
-        i += 1
+            i += 1
+            continue
+        # ordinary paragraph: join soft-wrapped source lines (markdown single newline)
+        joined = [s]
+        j = i + 1
+        while j < len(lines):
+            nxt = lines[j].strip()
+            if not nxt:
+                break
+            if re.match(r"^(#{1,3}\s+|---+$|\||\$\$|!\[)", nxt):
+                break
+            if nxt.startswith("- "):
+                break
+            if nxt.startswith('```'):
+                break
+            if in_references and REFERENCE_LINE.match(nxt):
+                break
+            if REFERENCE_LINE.match(nxt):
+                break
+            joined.append(nxt)
+            j += 1
+        par = doc.add_paragraph()
+        add_runs(par, ' '.join(joined))
+        i = j
+        continue
     doc.save(OUT)
     print("saved:", OUT)
     print("figures embedded:", len(png_by_num))

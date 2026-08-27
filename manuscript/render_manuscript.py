@@ -648,19 +648,20 @@ def immune_drug_tokens(imm_dir) -> dict:
 def table6(imm_dir) -> str:
     """Predicted drug sensitivity table (exploratory), single table with cohort rows."""
     imm_dir = Path(imm_dir)
-    lines = ["| Cohort | Drug | IC50 median (high) | IC50 median (low) | Wilcoxon P | FDR q | Spearman ρ | Spearman P |",
-             "|---|---|---|---|---|---|---|---|"]
+    lines = ["| Cohort | Drug | IC50 median (high) | IC50 median (low) | Wilcoxon P | Wilcoxon FDR q | Spearman ρ | Spearman P | Spearman FDR q |",
+             "|---|---|---|---|---|---|---|---|---|"]
     for ds in ["BRCA", "LUAD"]:
         p = imm_dir / ds / ("drug_stats_%s.csv" % ds)
         if not (p.exists() and p.stat().st_size > 1):
             continue
         d = pd.read_csv(p).sort_values("wilcox_P")
-        lines.append("| **%s (n high/low: %d/%d)** | | | | | | | |" % (ds, int(d["n_high"].iloc[0]), int(d["n_low"].iloc[0])))
+        lines.append("| **%s (n high/low: %d/%d)** | | | | | | | | |" % (ds, int(d["n_high"].iloc[0]), int(d["n_low"].iloc[0])))
         for _, r in d.iterrows():
-            lines.append("| %s | %s | %s | %s | %s | %s | %s | %s |" % (
+            lines.append("| %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
                 "", r["drug"], fmt2(float(r["high_median_IC50"])), fmt2(float(r["low_median_IC50"])),
                 fmt_p(float(r["wilcox_P"])), fmt_q(float(r["wilcox_q"])),
-                fmt2(float(r["spearman_rho"])), fmt_p(float(r["spearman_P"]))))
+                fmt2(float(r["spearman_rho"])), fmt_p(float(r["spearman_P"])),
+                fmt_q(float(r["spearman_q"]))))
     lines.append("_IC50 values are GDSC2/oncoPredict in-silico predictions; associations are exploratory and not FDR-significant unless stated._")
     return "\n".join(lines)
 def imv_tokens() -> dict:
@@ -762,12 +763,12 @@ def ext_rw_tokens() -> dict:
             cohort, n, hr, lo, hi, p = rows[0]
             st["EXT_RW_%s_SENT" % ds] = (
                 "The sole evaluable KIRC cohort, %s (n=%d), showed no significant association "
-                "between rewiring magnitude and OS (HR %s, 95%% CI %s–%s, %s)"
+                "between rewiring magnitude and OS (HR %s, 95%% CI %s–%s, %s)."
                 % (cohort, int(n), fmt2(float(hr)), fmt2(float(lo)), fmt2(float(hi)), fmt_p(p)))
         else:
-            st["EXT_RW_%s_SENT" % ds] = ("%s of %d GEO cohorts showed a nominally significant "
+            st["EXT_RW_%s_SENT" % ds] = ("For %s, %s of %d GEO cohorts showed a nominally significant "
                                          "association between rewiring magnitude and OS: %s."
-                                         % (n_nom, len(rows), "; ".join(parts)))
+                                         % (ds, n_nom, len(rows), "; ".join(parts)))
     return st
 
 
@@ -796,10 +797,10 @@ def template_ext_tokens() -> dict:
                             fmt_p(float(r.p_median)), int(r.n)))
         if ds == "LUAD":
             return ("The LUAD template score was associated with OS in one of three cohorts "
-                    "(%s), with a weighted meta z of %s (%s) across cohorts; "
+                    "(%s), with a weighted meta z of %s (%s) across cohorts). "
                     % ("; ".join(parts), fmt2(float(m["z_w"])), fmt_p(float(m["p_w"]))))
         return ("The %s template score was not associated with OS in any evaluable GEO cohort "
-                "(%s; fixed-effect HR %s, %s) "
+                "(%s; fixed-effect HR %s, %s). "
                 % (label, "; ".join(parts), fmt2(float(m["hr_fe"])), fmt_p(float(m["p_hr"]))))
     st["TEMPLATE_EXT_BRCA_SENT"] = sent("BRCA", "BRCA")
     st["TEMPLATE_EXT_KIRC_SENT"] = sent("KIRC", "KIRC")
