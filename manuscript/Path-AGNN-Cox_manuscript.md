@@ -476,7 +476,7 @@ Path-AGNN-Cox couples a pathway-constrained GNN with patient-specific attention 
 
 ## Author contributions
 
-Zhipeng Wang: conceptualization, methodology, software, formal analysis, and writing of the original draft. Luning Wang: data curation, methodology, and writing of the original draft. Changsong Wang: supervision, project administration, and review and editing of the manuscript. Pengli Zhai: resources and review and editing of the manuscript. Zejun Liu: validation and review and editing of the manuscript. Hui Feng: investigation and visualization. Hongmei Liu: data curation and validation. Qian Hou: software and visualization. Ming Guo: formal analysis and review and editing of the manuscript.
+Z.W. and L.W. contributed equally to this work. Z.W. conceived and designed the study, developed the Path-AGNN-Cox model and analysis pipelines, performed the benchmark, rewiring and immunotherapy analyses, and wrote the main manuscript text. L.W. curated and preprocessed the TCGA and GEO data, contributed to methodology, and co-wrote the main manuscript text. C.W. supervised the study and revised the manuscript. P.Z. provided resources and revised the manuscript. Z.L. validated the results and revised the manuscript. H.F. and Q.H. performed the investigation and prepared the figures. H.L. contributed to data curation and validation. M.G. contributed to the formal analysis and revised the manuscript. All authors reviewed and approved the final manuscript.
 
 ## Ethics approval
 
