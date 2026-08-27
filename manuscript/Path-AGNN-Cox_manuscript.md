@@ -151,6 +151,25 @@ The objective is invariant to a joint sign flip of the first-layer attention wei
 
 We used stratified 5-fold cross-validation within each TCGA cohort (fold-stratified on the event indicator; random seed 42). The concordance index [2,29] served as the primary discrimination metric; the time-dependent AUC [30] (mean over the 0.25/0.50/0.75 quantile times) was used as a secondary metric. For external validation, each model was retrained on the full TCGA cohort and evaluated on the GEO cohorts without any fine-tuning, following current recommendations for validating prognostic models [31]. Paired Wilcoxon signed-rank tests (per-dataset mean C-index, internal CV) were used to compare Path-AGNN-Cox against each baseline. Decision-curve analysis [32] was used to assess the clinical value of the risk score: inverse-probability-of-censoring-weighted net benefit was estimated at 1-, 3- and 5-year horizons over threshold probabilities 0.05–0.55 for three Cox models (clinical, clinical plus risk score, and risk score alone) fitted with a ridge penalizer of 0.01 in LUAD, BRCA and KIRC. Per-patient edge weights were extracted from the last adaptive layer and patients were split at the median predicted risk. Between-stratum rewiring was tested per pathway on the per-sample mean edge weight within each pathway, reporting Cohen's d with a normal-approximation 95% CI, and the false discovery rate was controlled with the Benjamini–Hochberg procedure [33]. Each pathway was additionally tested under 1,000 within-pathway label permutations of the risk strata; the permutation P was one plus the number of null permutations with at least as large an absolute effect, divided by 1,001. At the cohort level, the number of significant pathways was compared with a 1,000-permutation null obtained by permuting the risk labels, with the permutation P computed as one plus the number of null counts at least as large as the observed count, divided by 1,001. Two matched random gene-set controls assessed pathway-identity selectivity: for each real pathway, 200 random gene sets of equal size with matched internal edge counts, and 200 random equal-size subsets drawn from real pathway blocks so that size and density were matched, were scored with the identical effect-size statistic, and the percentile of each real pathway within its null distribution was recorded. Pathway-level enrichment of the top-20 pathways ranked by permutation P against a curated LUAD driver-pathway list was tested with the hypergeometric distribution over the 57-pathway cancer-core catalogue. Static-model, randomized-partition and standard-GAT controls followed the same protocol. All analyses are implemented in benchmark/rewiring_analysis.py and the work/ scripts of the repository at https://github.com/ZhongdaHospital-SEU/Path-AGNN-Cox. Model hyperparameters and baseline configurations are summarized in Table 2. All deep models were trained on CPU with Adam; the full benchmark consumed approximately 1,500 CPU-hours.
 
+The complete estimation and inference workflow is summarized below.
+
+**Algorithm 1** Training and patient-specific pathway-rewiring testing.
+```
+Require: expression matrix X, survival times t, event indicators E, pathway memberships P
+1: partition genes into K pathway subgraphs; build block-diagonal adjacency A
+2: initialize Path-AGNN-Cox parameters theta
+3: repeat until early stopping criterion (validation C-index, patience 15)
+4:   sample batch; forward pass -> risk scores y and per-patient edge weights alpha
+5:   L = L_Cox + lambda_2 ||W||^2 + lambda_sparse * L_sparse + lambda_consist * L_consist
+6:   update theta with Adam
+7: split patients into high- and low-risk strata at the median predicted risk
+8: for each pathway k do
+9:   compute the per-sample mean edge weight within pathway k; compare high- versus low-risk strata with a two-sided Mann-Whitney U test, retaining Cohen's d and the standardized U statistic z
+10:  end
+11: control the false discovery rate (BH) over K pathways
+12: repeat the pathway-level procedure under 1,000 risk-label permutations to obtain the null count
+```
+
 ### 2.8. Baselines
 
 Seven baselines span four modeling families: penalized Cox models (LASSO-Cox, Ridge-Cox, Elastic-Net-Cox), a tree ensemble (Random Survival Forest, RSF), deep survival models (DeepSurv, Cox-nnet), and an unconstrained GNN (Plain GNN: the Path-AGNN-Cox backbone with identity adjacency and global pooling, i.e., the −Pathway ablation). Two additional controls are the static pathway GNN (Path-AGNN-Cox with fixed uniform normalized adjacency inside each block, i.e., the −Adaptive ablation) and the unregularized variant (λ_sparse = λ_consist = 0, i.e., the −Regularization ablation). All models use the same pathway-mapped gene universe and the same CV/external protocol, so performance differences are attributable to modeling choices rather than feature sets.
@@ -185,23 +204,6 @@ which keeps the model feasible on commodity hardware.
 | Random Survival Forest | 500 trees, min_samples_leaf 15 |
 | DeepSurv | hidden [32, 16] |
 | Cox-nnet | hidden [64], dropout 0.0 |
-
-**Algorithm 1** Training and rewiring testing.
-```
-Require: expression matrix X, survival times t, event indicators E, pathway memberships P
-1: partition genes into K pathway subgraphs; build block-diagonal adjacency A
-2: initialize Path-AGNN-Cox parameters theta
-3: repeat until early stopping criterion (validation C-index, patience 15)
-4:   sample batch; forward pass -> risk scores y, per-patient edge weights alpha
-5:   L = L_Cox + lambda_2 ||W||^2 + lambda_sparse * L_sparse + lambda_consist * L_consist
-6:   update theta with Adam
-7: split patients into high- and low-risk strata (median y)
-8: for each pathway k do
-9:   test between-stratum difference of mean edge weight (z-test over edges)
-10:  end
-11: control the false discovery rate (BH) over K pathways
-12: repeat the pathway-level procedure under label permutations (1,000x) to obtain a null
-```
 
 ---
 
