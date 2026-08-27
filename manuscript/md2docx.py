@@ -310,6 +310,7 @@ def main():
             number_run._r.addprevious(start)
             number_run._r.addnext(end)
             bookmark_id += 1
+            par.add_run('. ')
             add_runs(par, reference_match.group(2))
         else:
             add_runs(par, s)
