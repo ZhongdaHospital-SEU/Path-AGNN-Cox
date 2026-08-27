@@ -202,8 +202,8 @@ which keeps the model feasible on commodity hardware.
 | Ridge-Cox | penalizer 0.1 |
 | Elastic-Net-Cox | l1_ratio 0.5, penalizer 0.1 |
 | Random Survival Forest | 500 trees, min_samples_leaf 15 |
-| DeepSurv | hidden [32, 16] |
-| Cox-nnet | hidden [64], dropout 0.0 |
+| DeepSurv | two hidden layers with widths 32 and 16 |
+| Cox-nnet | one hidden layer of width 64, dropout 0.0 |
 
 ---
 
