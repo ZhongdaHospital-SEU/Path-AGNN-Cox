@@ -30,6 +30,53 @@ MANIFEST = ROOT / "results" / "figures" / "figure_manifest.json"
 BOLD = re.compile(r"\*\*(.+?)\*\*")
 ITAL = re.compile(r"(?<!\*)\*([^*\[\]\n]+?)\*(?!\*)")
 
+CITATION = re.compile(r'\[(\d+(?:\s*[,\-]\s*\d+)*)\]')
+REFERENCE_LINE = re.compile(r'^(\d{1,2})\.\s+(.*)$')
+
+
+def _add_reference_field(par, reference_number):
+    '''Insert a Word REF field that jumps to the numbered-reference bookmark.'''
+    begin_run = par.add_run()
+    begin = OxmlElement('w:fldChar')
+    begin.set(qn('w:fldCharType'), 'begin')
+    begin_run._r.append(begin)
+    instr_run = par.add_run()
+    instr = OxmlElement('w:instrText')
+    instr.set(qn('xml:space'), 'preserve')
+    instr.text = f' REF ref{reference_number} \\h '
+    instr_run._r.append(instr)
+    separate_run = par.add_run()
+    separate = OxmlElement('w:fldChar')
+    separate.set(qn('w:fldCharType'), 'separate')
+    separate_run._r.append(separate)
+    par.add_run(str(reference_number))
+    end_run = par.add_run()
+    end = OxmlElement('w:fldChar')
+    end.set(qn('w:fldCharType'), 'end')
+    end_run._r.append(end)
+
+
+def _add_citation_group(par, bracketed_numbers):
+    numbers = []
+    for part in bracketed_numbers.split(','):
+        boundaries = [int(value.strip()) for value in part.split('-')]
+        if len(boundaries) == 1:
+            numbers.extend(boundaries)
+        elif len(boundaries) == 2 and boundaries[0] <= boundaries[1]:
+            numbers.extend(range(boundaries[0], boundaries[1] + 1))
+        else:
+            return False
+    if not numbers or any(number < 1 or number > 46 for number in numbers):
+        return False
+    par.add_run('[')
+    for index, number in enumerate(numbers):
+        if index:
+            par.add_run(',')
+        _add_reference_field(par, number)
+    par.add_run(']')
+    return True
+
+
 def add_runs(par, text, base_bold=False):
     """Add text to paragraph, honoring **bold** and *italic* markers."""
     pos = 0
@@ -44,6 +91,18 @@ def add_runs(par, text, base_bold=False):
 UNDER = re.compile(r"(?<!\w)_([^_\n]+?)_(?!\w)")
 
 def add_runs_plain(par, text, base_bold=False):
+    pos = 0
+    for citation in CITATION.finditer(text):
+        if citation.start() > pos:
+            add_runs_underscore(par, text[pos:citation.start()], base_bold)
+        if not _add_citation_group(par, citation.group(1)):
+            add_runs_underscore(par, citation.group(0), base_bold)
+        pos = citation.end()
+    if pos < len(text):
+        add_runs_underscore(par, text[pos:], base_bold)
+
+
+def add_runs_underscore(par, text, base_bold=False):
     pos = 0
     for m in UNDER.finditer(text):
         if m.start() > pos:
@@ -134,6 +193,8 @@ def main():
             if png.exists():
                 png_by_num[int(m.group(1))] = png
     doc = Document()
+    in_references = False
+    bookmark_id = 1000
     # base style
     st = doc.styles["Normal"]
     st.font.name = "Times New Roman"
@@ -185,6 +246,8 @@ def main():
         m = re.match(r"^(#{1,3})\s+(.*)$", s)
         if m:
             lvl = len(m.group(1))
+            if m.group(2) == 'References':
+                in_references = True
             par = doc.add_paragraph()
             add_runs(par, m.group(2))
             for r in par.runs:
@@ -232,9 +295,24 @@ def main():
             add_runs(par, s[2:])
             i += 1
             continue
-        # normal paragraph
+        # reference paragraphs receive anchors used by clickable REF fields.
+        if s == '## References':
+            in_references = True
+        reference_match = REFERENCE_LINE.match(s) if in_references else None
         par = doc.add_paragraph()
-        add_runs(par, s)
+        if reference_match:
+            number_run = par.add_run(reference_match.group(1))
+            start = OxmlElement('w:bookmarkStart')
+            start.set(qn('w:id'), str(bookmark_id))
+            start.set(qn('w:name'), 'ref' + str(int(reference_match.group(1))))
+            end = OxmlElement('w:bookmarkEnd')
+            end.set(qn('w:id'), str(bookmark_id))
+            number_run._r.addprevious(start)
+            number_run._r.addnext(end)
+            bookmark_id += 1
+            add_runs(par, reference_match.group(2))
+        else:
+            add_runs(par, s)
         i += 1
     doc.save(OUT)
     print("saved:", OUT)
